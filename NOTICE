@@ -1,0 +1,107 @@
+funder-graph — The Open 990 Funding Graph
+Copyright 2026 Egeria Corporation
+
+This product includes software developed by Egeria Corporation and is licensed
+under the Apache License, Version 2.0. A copy of the License is in the LICENSE
+file at the root of this repository.
+
+Sponsored by OpenGrants (https://opengrants.io).
+
+================================================================================
+UPSTREAM PROJECTS
+================================================================================
+
+This project depends on, adapts, or is directly informed by the work below. The
+funding graph would not exist without it. License text for each dependency is
+reproduced in third_party/ where the dependency's license requires it.
+
+MAINTAINER NOTE: the license identifiers below must be confirmed against the
+LICENSE file at the exact commit or release pinned in pyproject.toml and
+data/upstream-pins.toml before each release, and corrected here verbatim if they
+have changed. Do not carry an assumed license forward.
+
+--------------------------------------------------------------------------------
+IRS E-file Master Concordance File
+  Author:  Nonprofit Open Data Collective
+  Source:  https://github.com/Nonprofit-Open-Data-Collective/irs-efile-master-concordance-file
+  Docs:    https://nonprofit-open-data-collective.github.io/irs-efile-master-concordance-file/
+  License: see LICENSE at the pinned commit; recorded in data/upstream-pins.toml
+  Use:     Primary field-to-XPath crosswalk across 990 schema versions. Every
+           grant field this project extracts is located through the concordance
+           rather than through XPaths written by us.
+
+IRS-Efile-Database
+  Author:  Nonprofit Open Data Collective
+  Source:  https://github.com/Nonprofit-Open-Data-Collective/IRS-Efile-Database
+  Docs:    https://nonprofit-open-data-collective.github.io/IRS-Efile-Database/
+  License: see LICENSE at the pinned commit
+  Use:     Prior art for normalized relational modeling of 990 filings. Informed
+           our table decomposition and naming.
+
+form-990-xml-mapper
+  Author:  GivingTuesday (Data Commons)
+  Source:  https://github.com/Giving-Tuesday/form-990-xml-mapper
+  License: see LICENSE at the pinned commit
+  Use:     Enumerates every XPath present in a given 990 XML schema version. We
+           run it as a drift detector: XPaths present in a filing's schema
+           version but absent from our concordance-derived map are reported, not
+           silently dropped.
+
+form-990-xml-parser
+  Author:  GivingTuesday (Data Commons)
+  Source:  https://github.com/Giving-Tuesday/form-990-xml-parser
+  License: see LICENSE at the pinned commit
+  Use:     Reference implementation for repeating-group traversal and schedule
+           handling in 990 XML.
+
+GivingTuesday 990 Data Commons — Form 990 Variable Dictionary and Data Mart
+Dictionary
+  Author:  GivingTuesday
+  Source:  https://990data.givingtuesday.org/tool-repository/
+  Use:     Field semantics and variable naming conventions.
+
+open990odl
+  Author:  990 Consulting, LLC
+  Source:  https://github.com/990consulting/open990odl
+  License: see LICENSE at the pinned commit
+  Use:     Cross-reference for 990 data modeling decisions.
+
+propublica990
+  Author:  Punderthings LLC
+  Source:  https://github.com/Punderthings/propublica990
+  License: see LICENSE at the pinned commit
+  Use:     Reference for well-behaved use of the ProPublica Nonprofit Explorer
+           API.
+
+================================================================================
+DATA SOURCES
+================================================================================
+
+Internal Revenue Service — Form 990 Series Bulk e-File XML
+  https://www.irs.gov/charities-non-profits/form-990-series-downloads
+  A work of the United States Government. Not subject to copyright protection in
+  the United States (17 U.S.C. Section 105).
+
+Internal Revenue Service — Tax Exempt Organization Search bulk downloads,
+including the Exempt Organizations Business Master File, Publication 78 Data,
+and the Automatic Revocation of Exemption List
+  https://www.irs.gov/charities-non-profits/tax-exempt-organization-search-bulk-data-downloads
+  A work of the United States Government. Not subject to copyright protection in
+  the United States.
+
+ProPublica Nonprofit Explorer API (optional, lookups and gap-filling only)
+  https://projects.propublica.org/nonprofits/api
+  Subject to the ProPublica Data Terms of Use:
+  https://www.propublica.org/about/propublica-data-terms-of-use
+  Used for verification lookups. No bulk ProPublica content is redistributed in
+  the published dataset.
+
+OpenGrants public API (optional enrichment layer only)
+  https://ops.opengrants.io/api-docs
+  Live opportunity data retrieved at request time when the user supplies their
+  own API key. Not included in the published dataset.
+
+The published funder-graph dataset is a derived work of United States federal
+government records. Egeria Corporation claims no copyright in the underlying
+facts. The dataset's structure, entity resolution, documentation, and code are
+licensed under the Apache License, Version 2.0.

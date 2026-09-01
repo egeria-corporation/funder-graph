@@ -1,0 +1,10 @@
+# Normalize line endings. CI runs on Linux; development happens on Windows and macOS.
+# Without this, a Windows checkout can commit CRLF into source and lint fails only in CI.
+* text=auto eol=lf
+
+# Binary and fixture data: never touch.
+*.png binary
+*.zip binary
+*.parquet binary
+*.sqlite binary
+*.zst binary
