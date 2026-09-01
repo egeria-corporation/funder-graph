@@ -20,9 +20,12 @@ much?"* The answer is public and nobody has published it as usable data.
   including the recipient's EIN.
 
 Across the IRS electronic filing corpus these are tens of millions of funder-to-recipient edges.
-They are the substance of what Candid ($1,599/year), Instrumentl ($179–$899/month), and Plinth sell.
-The reason nobody has freed them is that the source XML spans hundreds of schema versions with
+They are the substance of what the paid foundation-research products in this category sell access
+to. The reason nobody has freed them is that the source XML spans hundreds of schema versions with
 inconsistent XPaths and no stable field naming.
+
+**Do not name or price a commercial product anywhere in this repository** — not in code, help text,
+command output, documentation, or a hosted page. See `docs/program/CONVENTIONS.md`.
 
 **Your job:** parse the full IRS e-file XML corpus into one normalized funder-to-recipient grant edge
 list, resolve recipients to EINs with published confidence scores, and publish the result as

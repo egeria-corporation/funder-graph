@@ -97,16 +97,12 @@ Contribution posture: contribute fixes upstream first, credit prominently, and n
 
 ## Competitive pricing — the parity targets
 
-**Withheld from the vendored copy.** Competitor pricing is maintained in the internal program
-dossier because several figures are sourced from a third-party comparison rather than from the
-vendor's own pricing page, and the program rule is that any competitor price is re-verified on
-the vendor's own page and date-stamped before it appears in public copy.
+**Withheld.** Program rule D-002: no repository names a commercial competitor or quotes its
+price, anywhere. See `CONVENTIONS.md`, "No competitor naming or pricing."
 
-This repository's own `docs/research/competitive.md` carries the analysis relevant to this tool,
-with each figure's source and verification status. Treat anything marked **VERIFY** there as
-not publishable until re-checked.
-
-**Never put a competitor price in code, help text, command output, or a public page.**
+Where the argument for a tool depends on the shape of the paid category, describe the category
+and make the point without a name attached. Each repository's own
+`docs/research/competitive.md` does exactly that, and is the only place the argument belongs.
 
 ## OpenGrants platform facts
 

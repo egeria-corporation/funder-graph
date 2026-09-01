@@ -12,7 +12,7 @@ during the year: recipient name, recipient address, the purpose, and the dollar 
 public charity that makes grants to other organizations must list them on Schedule I of the
 Form 990, usually including the recipient's EIN. Those two tables, across every filing the IRS
 has published electronically, are tens of millions of funder-to-recipient edges. They are the
-substance of what Candid, Instrumentl, and Plinth sell access to.
+substance of what the paid foundation-research products sell access to.
 
 Nobody had freed them because the raw data is genuinely unpleasant. The IRS publishes it as
 ZIP archives of XML, one file per filing, across hundreds of schema versions with element names

@@ -56,6 +56,32 @@ This program is only credible if it is a good citizen of the nonprofit open data
 - Where we fix a bug or extend a mapping in upstream work, we open the PR upstream first and note it in `docs/research/prior-art.md`.
 - We never re-implement something a community project already does well just to own it.
 
+## No competitor naming or pricing
+
+**No repository in this program names a commercial competitor or quotes its price.** Not in code,
+help text, command output, documentation, a README, a build prompt, or a hosted page.
+
+This applies to comparisons and positioning. Three things are not covered by it:
+
+- **Grantmaker-side platforms named as domain facts.** A grantee files reports through a funder's
+  portal, and tools that model that reality name the portals. That is a fact about the sector, not
+  a comparison.
+- **Genuine attribution.** Where an organization maintained a form, a standard, or a dataset we
+  build on, it gets credited by name. Attribution is a first-class requirement elsewhere in this
+  document and it outranks this rule.
+- **Our own costs and our sponsor's pricing.** Infrastructure figures and OpenGrants' own published
+  pricing are ours to state.
+
+Where the argument for a tool genuinely depends on the shape of the paid category, describe the
+category — "the paid foundation-research products," "subscription grant management software" — and
+make the point without a name attached. `docs/research/competitive.md` in each repo does exactly
+this, and is the only place the argument belongs.
+
+The reason is durability rather than politeness. A named competitor claim is stale the moment their
+pricing page changes, it invites a correction we then have to publish, and it makes a factual
+open-data project read as a marketing exercise. The tools are more credible when they simply do the
+job and let the reader draw the comparison.
+
 ## Data honesty
 
 - Every dataset the tool derives from is named in the README with a link to its source and its refresh cadence.
@@ -85,7 +111,7 @@ Any tool that reports on an organization's status, eligibility, or compliance po
 │   ├── research/
 │   │   ├── data-sources.md    # verified endpoints, formats, gotchas, refresh cadence
 │   │   ├── prior-art.md       # upstream projects, credits, contribution plan
-│   │   └── competitive.md     # the paid feature this replaces
+│   │   └── competitive.md     # the capability gap this fills
 │   └── hosted/
 │       └── architecture.md    # hosted companion design
 ├── prompts/

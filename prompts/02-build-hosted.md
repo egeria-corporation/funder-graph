@@ -325,8 +325,9 @@ Optional, additive, silent on failure — same rule as the CLI.
   public-source and which are API-sourced.
 - Wrap in a timeout and a broad catch. Enriched pages get the 24-hour TTL, un-enriched get 7 days.
 - This combination is the single most differentiated thing in the program: *here is what they have
-  actually funded, and here is what they have open right now.* Candid has the history. Grants.gov
-  tools have the openings. Almost nobody joins them. Make the join obvious on the page.
+  actually funded, and here is what they have open right now.* The paid research products have the
+  history; opportunity tools have the openings; almost nobody joins them. Make the join obvious on
+  the page — without naming a commercial product anywhere on it.
 
 ---
 

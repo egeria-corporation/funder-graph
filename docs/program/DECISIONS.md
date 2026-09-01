@@ -119,3 +119,68 @@ than a coordination problem.
 **Consequence for sequencing:** hosted launches are no longer gated on anything external. Each
 hosted companion ships as soon as its repo is ready, so the program runs repo-then-site five times
 rather than five repos followed by five sites.
+
+---
+
+## D-002 — No competitor naming or pricing in any repository
+
+**Decided:** 2026-09-01 · **Status:** accepted · **Affects:** all five repos and all five hosted
+sites
+
+### The decision
+
+No repository in this program names a commercial competitor or quotes its price — not in code, help
+text, command output, documentation, a README, a build prompt, or a hosted page. The binding rule is
+in `CONVENTIONS.md` under "No competitor naming or pricing."
+
+Where the argument for a tool depends on the shape of the paid category, the category gets described
+— "the paid foundation-research products," "subscription grant management software" — and the point
+gets made without a name attached.
+
+**This replaces the previous rule**, which permitted competitor pricing in public copy provided it
+was re-verified on the vendor's own page and date-stamped. That rule created a standing verification
+obligation before every publication, and the obligation is now gone along with the claims.
+
+### What was removed
+
+- All five `docs/research/competitive.md` files were rewritten as "What this replaces" — the same
+  capability-gap argument with no vendor named and no price quoted.
+- The commercial-product sections of `grantdesk` and `answerbank` `prior-art.md`. What those files
+  keep is what the conventions actually require prior art to cover: the open source work each
+  repository builds on, the incumbent practice it has to beat (the spreadsheet, the Google Docs
+  folder), and the upstream contribution posture.
+- Scattered comparative claims in `funder-graph`'s README and both prompts, `grantcheck`'s
+  NON-GOALS, and `grantdesk`'s README.
+- The competitor-price verification steps in the `precedent` and `answerbank` build prompts, which
+  no longer describe anything that can happen.
+
+The removed analysis is preserved outside the repositories, in the internal program folder. It was
+archived before deletion rather than discarded.
+
+### Three things the rule does not cover
+
+1. **Grantmaker-side platforms named as domain facts.** A grantee files reports through a funder's
+   portal, and a tool that models that reality names the portals — `grantdesk`'s `portal_kind` enum
+   is a schema, not a comparison. These stay.
+2. **Genuine attribution.** Where an organization maintained a form, standard, or dataset we build
+   on, it gets credited by name. Attribution is a first-class requirement and outranks this rule.
+3. **Our own costs and our sponsor's pricing.** Cloudflare figures and OpenGrants' published pricing
+   are ours to state.
+
+### Why
+
+Durability rather than politeness. A named competitor claim is stale the moment their pricing page
+changes, it invites a correction we then have to publish, and it makes a factual open-data project
+read as a marketing exercise. The tools are more credible when they do the job and let the reader
+draw the comparison.
+
+The practical trigger: an audit before the first public push found roughly sixteen competitor price
+figures across the five repos carrying a **VERIFY** marker, sourced from a third-party comparison
+about two years old, plus one unqualified pricing claim in `funder-graph`'s most-read file.
+
+### What would reopen this
+
+A deliberate decision that a specific piece of public copy needs a named comparison to make sense —
+a launch post, a conference talk. That is a communications decision, made once, for one artifact,
+and it does not change what lives in the repositories.
+
