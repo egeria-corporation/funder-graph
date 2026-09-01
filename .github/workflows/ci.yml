@@ -5,7 +5,29 @@ on:
   pull_request:
 
 jobs:
+  # Guard for the documentation-only phase of this repository. Until milestone M0 adds
+  # pyproject.toml there is nothing to lint or test, and an unconditional job would leave
+  # a permanently red badge that everyone learns to ignore.
+  #
+  # REMOVE THIS JOB at M0, along with the `needs`/`if` on the job below.
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      has_project: ${{ steps.check.outputs.has_project }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          if [ -f pyproject.toml ]; then
+            echo "has_project=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_project=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No pyproject.toml yet — documentation-only phase. Lint and tests are skipped until milestone M0."
+          fi
+
   test:
+    needs: detect
+    if: needs.detect.outputs.has_project == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
