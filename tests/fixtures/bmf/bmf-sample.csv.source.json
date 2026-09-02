@@ -1,0 +1,11 @@
+{
+  "source_url": "https://www.irs.gov/pub/irs-soi/eo1.csv (and eo2-eo4)",
+  "source_file": "eo1.csv",
+  "upstream_last_modified": "Mon, 10 Aug 2026 17:10:59 GMT",
+  "upstream_sha256": "6749085dd79a822f7b50a6dae41b055ad2c691232b30536a0583aeab65c9063a",
+  "retrieved_at": "2026-09-01T16:44:42.902124+00:00",
+  "extracted_at": "2026-09-01T16:51:03.225801+00:00",
+  "rows": 49,
+  "note": "Real EO Business Master File rows. Comma-delimited with a header, unlike the other three TEOS files which are pipe-delimited with no header. Includes the named verification organizations, group-exemption subordinates (non-zero GROUP), private foundations (FOUNDATION=04), rows whose quoted fields contain commas (RFC 4180 quoting IS used here, so split(',') shifts them), and a spread sample.",
+  "fixture_sha256": "867b16d455e3517aac173abe06a76893e7c1faa1f4a3a9a999a01c199fb0e170"
+}

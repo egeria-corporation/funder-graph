@@ -81,6 +81,15 @@ propublica990
   Use:     Reference for well-behaved use of the ProPublica Nonprofit Explorer
            API.
 
+grantcheck
+  Author:  Egeria Corporation (a sibling repository in this program)
+  Source:  https://github.com/egeria-corporation/grantcheck
+  License: Apache License 2.0
+  Use:     Its TEOS parsers (grantcheck.ingest.teos), verified against the real
+           IRS bulk files, parse the Exempt Organizations Business Master File
+           for entity resolution. The 49-row BMF fixture under tests/fixtures/bmf/
+           is carried over from that repository with its provenance sidecar.
+
 ================================================================================
 DATA SOURCES
 ================================================================================

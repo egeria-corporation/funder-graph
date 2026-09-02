@@ -5,6 +5,18 @@ All notable changes to `funder-graph` are documented here. This project follows 
 ## [Unreleased]
 
 ### Added
+- Milestone 4, entity resolution: the Business Master File loaded into the build state with
+  the blocking keys precomputed (`build bmf`), and a matcher that resolves each distinct
+  recipient tuple once against it with the build spec's exact tiers and confidence bands
+  (`build resolve`). Ambiguity resolves to `U`, never to the top candidate; chapter
+  organizations are capped at tier C without ZIP5 or city agreement; address disagreement
+  lowers confidence within a band and never vetoes. Answers are remembered in
+  `state.duckdb` so the monthly update re-resolves only what is new or still unresolved.
+- `data/overrides/name-aliases.csv` and `data/overrides/ein-corrections.csv`, both requiring a
+  source on every row; a correction is published as `recipient_ein_source =
+  manual_correction`, a new value in that column's enumeration.
+- `grantcheck` (the sibling repository's TEOS parsers) and `jellyfish` (the phonetic blocking
+  key) as dependencies.
 - Milestone 1: package skeleton (`pyproject.toml`, `uv`, `ruff`, `pytest`, CI), the
   concordance loader, and the Part XV / Schedule I extractor. `funder-graph parse-filing`
   prints real grant rows from one real filing, mapped through the concordance.

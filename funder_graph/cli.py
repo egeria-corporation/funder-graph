@@ -389,3 +389,78 @@ def build_normalize(
             "do not reproduce the filers' own totals; that is a parsing bug with a built-in detector."
         )
         sys.exit(3)
+
+
+@build.command("bmf")
+@click.option(
+    "--file",
+    "files",
+    multiple=True,
+    required=True,
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    help="A Business Master File CSV (eo1.csv ... eo4.csv). Repeat for each regional file.",
+)
+@click.option("--vintage", required=True, help="The IRS posting month of the files, e.g. 2026-08.")
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+def build_bmf(files: tuple[Path, ...], vintage: str, work_dir: Path | None) -> None:
+    """Load the Exempt Organizations Business Master File into the build state.
+
+    The reference data for entity resolution. Get the files from the IRS TEOS bulk downloads
+    page; pass every regional file for one vintage in one invocation.
+    """
+    import duckdb
+
+    from funder_graph.resolve.bmf import bmf_count, load_bmf
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    work.mkdir(parents=True, exist_ok=True)
+    conn = duckdb.connect(str(work / "state.duckdb"))
+    try:
+        for i, path in enumerate(files):
+            text = path.read_text(encoding="utf-8", errors="replace")
+            result = load_bmf(conn, text, vintage=vintage, replace=(i == 0))
+            _emit(
+                f"{path.name}: {result.rows:,} rows, {result.organizations:,} organizations kept, {result.quarantined:,} quarantined, "
+                f"{result.field_warnings:,} field warnings"
+            )
+        _emit(f"bmf: {bmf_count(conn):,} organizations, vintage {vintage}")
+    finally:
+        conn.close()
+
+
+@build.command("resolve")
+@click.option(
+    "--years",
+    default=None,
+    help="Filing years, e.g. 2023 or 2019-2026. Default: every written partition.",
+)
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+@click.option(
+    "--re-resolve-unresolved",
+    is_flag=True,
+    help="Drop stored tier-U answers first so they get another chance against the current BMF.",
+)
+def build_resolve(years: str | None, work_dir: Path | None, re_resolve_unresolved: bool) -> None:
+    """Resolve recipient names to EINs and rewrite the grants partitions with the match columns.
+
+    Each distinct recipient tuple is resolved once and remembered in the build state; rows
+    already resolved at tier A or B are never touched again.
+    """
+    from funder_graph.pipeline.download import parse_years
+    from funder_graph.pipeline.resolve import BmfMissing, resolve
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    wanted = parse_years(years) if years else None
+    try:
+        result = resolve(
+            work / "parquet", work, wanted, re_resolve_unresolved=re_resolve_unresolved
+        )
+    except BmfMissing as exc:
+        _emit(f"STOP: {exc}")
+        sys.exit(1)
+    tiers = ", ".join(f"{t}={n:,}" for t, n in sorted(result.tier_counts.items()))
+    _emit(
+        f"resolve: {result.tuples_pending:,} distinct recipient tuples resolved against BMF "
+        f"{result.bmf_vintage} ({tiers or 'none pending'}); "
+        f"{result.rows_rewritten:,} rows across {result.files_rewritten} files rewritten"
+    )
