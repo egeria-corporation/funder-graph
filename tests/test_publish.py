@@ -147,3 +147,29 @@ class TestUpload:
         ).fetchall()
         assert [y for y, _ in rows] == [2023, 2024]
         assert sum(n for _, n in rows) == m.rows["total"]
+
+
+class TestWranglerUploader:
+    def test_command_shape_and_non_zero_exit_is_an_error(self, tmp_path: Path) -> None:
+        import sys
+
+        from funder_graph.pipeline.publish import WranglerUploader
+
+        obj = tmp_path / "x.parquet"
+        obj.write_bytes(b"pq")
+        seen = tmp_path / "seen.txt"
+        # A stand-in for wrangler: records its arguments, prints an emoji, exits 1.
+        fake = tmp_path / "fake.py"
+        fake.write_text(
+            "import sys, pathlib\n"
+            f"pathlib.Path({str(seen)!r}).write_text(' '.join(sys.argv[1:]), encoding='utf-8')\n"
+            "sys.stdout.buffer.write('\\u26c5 wrangler\\n'.encode('utf-8'))\n"
+            "sys.exit(1)\n",
+            encoding="utf-8",
+        )
+        up = WranglerUploader("opengrants-data", wrangler=[sys.executable, str(fake)])
+        with pytest.raises(PublishError, match=r"upload of funder-graph/v/x.parquet failed"):
+            up.put("funder-graph/v/x.parquet", obj, "application/vnd.apache.parquet")
+        args = seen.read_text(encoding="utf-8")
+        assert args.startswith("r2 object put opengrants-data/funder-graph/v/x.parquet --file ")
+        assert args.endswith("--content-type application/vnd.apache.parquet --remote")

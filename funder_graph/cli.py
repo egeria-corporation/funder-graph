@@ -663,14 +663,16 @@ def dataset_info(dataset_version: str, base_url: str | None) -> None:
     """Fetch manifest.json for a version and print what you would be querying."""
     import json
     from urllib.error import URLError
-    from urllib.request import urlopen
+    from urllib.request import Request, urlopen
 
     from funder_graph.pipeline.publish import DEFAULT_PREFIX, PUBLIC_BASE_URL
 
     base = (base_url or f"{PUBLIC_BASE_URL}/{DEFAULT_PREFIX}").rstrip("/")
     url = f"{base}/{dataset_version}/manifest.json"
     try:
-        with urlopen(url, timeout=20) as resp:
+        # Cloudflare answers 403 to urllib's default User-Agent; say who we are.
+        req = Request(url, headers={"User-Agent": f"funder-graph/{__version__}"})
+        with urlopen(req, timeout=20) as resp:
             manifest = json.load(resp)
     except URLError as exc:
         _emit(f"could not fetch {url}: {exc}")
