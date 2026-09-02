@@ -48,6 +48,9 @@ _HEADER_ALIASES: dict[str, str] = {
     "TAXPAYER NAME": "taxpayer_name",
     "RETURN TYPE": "return_type",
     "OBJECT ID": "object_id",
+    # 2024 onward: the archive batch a filing was posted in. Carried nowhere; the archive
+    # itself is registered from its members, which is the authoritative mapping.
+    "XML_BATCH_ID": "xml_batch_id",
 }
 REQUIRED = {"ein", "tax_period", "sub_date", "taxpayer_name", "return_type", "object_id"}
 

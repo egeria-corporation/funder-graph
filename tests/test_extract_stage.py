@@ -296,3 +296,18 @@ class TestReconcileIsPerYear:
         r2023 = reconcile(conn, 2023)
         assert (r2019.matched, r2019.index_only, r2019.zip_only) == (1, 0, 1)
         assert (r2023.matched, r2023.index_only, r2023.zip_only) == (0, 0, 2)
+
+
+class TestNewerIndexColumns:
+    def test_2024_xml_batch_id_column_is_accepted(self, tmp_path, conn):
+        from funder_graph.pipeline.extract import load_index
+
+        csv = tmp_path / "index_2024.csv"
+        rows = [
+            "RETURN_ID,FILING_TYPE,EIN,TAX_PERIOD,SUB_DATE,TAXPAYER_NAME,RETURN_TYPE,DLN,OBJECT_ID,XML_BATCH_ID",
+            "1,EFILE,100000001,202312,2024-05-01,A,990,1,202400000000000001,2024_TEOS_XML_01A",
+            "2,EFILE,100000002,202312,2024-05-01,B,990PF,2,202400000000000002,2024_TEOS_XML_01A",
+        ]
+        csv.write_text(chr(10).join(rows) + chr(10), encoding="utf-8")
+        summary = load_index(conn, csv, 2024)
+        assert summary.kept == 2
