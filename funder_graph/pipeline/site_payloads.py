@@ -44,6 +44,7 @@ TOP_RECIPIENTS = 250
 # complete list; a chunked funder carries this many most-recent rows as a preview and the
 # rest in year pages.
 RECENT_GRANTS = CHUNK_THRESHOLD
+PREVIEW_GRANTS = 500  # what a chunked funder's summary page shows; its year pages have the rest
 SITEMAP_URLS = 50_000
 D1_BATCH = 500
 SITE_ORIGIN = "https://funders.opengrants.io"
@@ -267,6 +268,7 @@ def _emit_funder_batch(
         if chunked:
             key = f"funders/{ein}/index.json"
             payload["pages"] = _write_year_chunks(conn, build, ein, name, payload["years"])
+            payload["recent_grants"] = payload["recent_grants"][:PREVIEW_GRANTS]
             build.funders_chunked += 1
         else:
             key = f"funders/{ein}.json"
