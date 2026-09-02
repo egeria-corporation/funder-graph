@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "payloads",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8788", "--bind", "127.0.0.1", "--directory", "build/site"],
+      "port": 8788
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "site/node_modules/.bin/wrangler",
+      "runtimeArgs": [
+        "dev",
+        "--config",
+        "site/wrangler.jsonc",
+        "--port",
+        "8787",
+        "--ip",
+        "127.0.0.1",
+        "--var",
+        "PAYLOAD_BASE_URL:http://127.0.0.1:8788",
+        "--var",
+        "SITE_ORIGIN:http://127.0.0.1:8787"
+      ],
+      "port": 8787
+    }
+  ]
+}
