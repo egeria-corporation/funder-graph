@@ -327,7 +327,11 @@ and contains no named individuals. It is **out of scope** for the edge list.
 
 **Part I** carries `Total501c3OrgCnt` and `TotalOtherOrgCnt`, the filer's own count of recipient
 organizations. Same trick as the 990-PF total: reconcile our parsed row count against it and
-publish the delta.
+publish the delta. Measured on the 2023 posting: of 37,166 filings stating a count, 32,622
+(87.8%) match our row count exactly; the 4,544 mismatches are concentrated at large filers, off
+by one at the median (3,124 state more organizations than they list, 1,420 fewer), and hold about
+half of all parsed rows. A counting discrepancy on the filer's side, not a mapping gap; the 990-PF
+total, which is a dollar figure, reconciles at 99.98%.
 
 **Older schema equivalents:** `RecipientTable` with `EINOfRecipient`, `NameOfOrganization` or
 `RecipientNameBusiness`, `AmountOfCashGrant`, `AmountOfNonCashAssistance`, `PurposeOfGrant`,

@@ -256,6 +256,12 @@ and a citation.
   not foreign ones, and they resolve through the same matcher as 990-PF rows. The concordance
   maps 99.4% of grant-bearing filings' publishable fields; the optional fields' presence is
   published per version in `build/reports/version-coverage.csv`, not hidden in an average.
+- **Some foundations' grants are in an attachment the XML does not carry.** In the 2023 posting,
+  3,253 990-PF filers reported a Part XV total but listed their grantees only as an aggregate
+  placeholder (`VARIOUS ORGANIZATIONS`, `SEE ATTACHED SCHEDULE`): $20.96B, 15% of 990-PF dollars
+  in that posting, against $119.6B in structured rows. Those foundations are in
+  `build/reports/pf-missing-detail.csv` by EIN with the total they stated. A funder absent from
+  the edge list is not necessarily a funder that made no grants.
 - **`amount_type` matters.** 990-PF Part XV reports grants *paid during the year* and grants
   *approved for future payment* in two separate tables. They overlap across years. Summing both
   will overstate giving, sometimes badly. Default to `amount_type = 'paid'`.
