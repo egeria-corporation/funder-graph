@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "funders-opengrants-io",
+  "main": "src/index.tsx",
+  "compatibility_date": "2026-08-01",
+  "observability": {
+    "enabled": true,
+    "logs": { "invocation_logs": false }
+  },
+
+  // Precomputed per-funder and per-recipient JSON, sitemaps, and the dataset itself live in
+  // the program's one public data bucket under funder-graph/<version>/ (D-009). The Worker
+  // reads; the ingest job writes. Nothing is written at request time.
+  "r2_buckets": [{ "binding": "DATA", "bucket_name": "opengrants-data" }],
+
+  // The index: what is searched or ranked. Grant rows never go in D1.
+  "d1_databases": [
+    { "binding": "DB", "database_name": "funder-graph", "database_id": "<set on first deploy>" }
+  ],
+
+  // One key, current_dataset_version. Flipping it is the cutover.
+  "kv_namespaces": [{ "binding": "VINTAGE", "id": "<set on first deploy>" }],
+
+  "vars": {
+    "SITE_ORIGIN": "https://funders.opengrants.io",
+    "DATA_PREFIX": "funder-graph",
+    // Development only: when set, payloads are fetched from this URL instead of the R2
+    // binding, so `wrangler dev` runs against build/site/<version>/ served by any static
+    // file server. Never set in production.
+    "PAYLOAD_BASE_URL": ""
+  },
+
+  "routes": [{ "pattern": "funders.opengrants.io", "custom_domain": true }]
+}

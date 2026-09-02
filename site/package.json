@@ -1,0 +1,27 @@
+{
+  "name": "funders-opengrants-io",
+  "private": true,
+  "type": "module",
+  "description": "funders.opengrants.io - the hosted companion to funder-graph, rendered at the edge from R2 and D1",
+  "license": "Apache-2.0",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "check": "biome check . && tsc --noEmit",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "db:schema:local": "wrangler d1 execute funder-graph --local --file=./schema.sql",
+    "db:schema:remote": "wrangler d1 execute funder-graph --remote --file=./schema.sql"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^4.0.0"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "organizeImports": { "enabled": true },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "correctness": {
+        // Hono JSX renders to a string once, server-side. There is no reconciliation and
+        // no client runtime, so a key in an iterable is noise with no behaviour attached.
+        "useJsxKeyInIterable": "off"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "files": { "ignore": ["node_modules", ".wrangler", "dist"] }
+}

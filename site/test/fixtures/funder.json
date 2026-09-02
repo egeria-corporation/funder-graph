@@ -1,0 +1,114 @@
+{
+  "ein": "846725611",
+  "name": "BRODERICK CHARITABLE FOUNDATION TRUST",
+  "city": "DES MOINES",
+  "state": "IA",
+  "ntee_code": "T20",
+  "subsection_code": "03",
+  "form_type": "990PF",
+  "totals": {
+    "paid_usd": 50000,
+    "paid_count": 4,
+    "recipient_count": 4,
+    "approved_future_usd": 12000,
+    "approved_future_count": 1,
+    "first_tax_year": 2022,
+    "last_tax_year": 2022,
+    "grant_rows": 5
+  },
+  "years": [
+    { "tax_year": 2022, "amount_type": "approved_future", "usd": 12000, "count": 1 },
+    { "tax_year": 2022, "amount_type": "paid", "usd": 50000, "count": 4 }
+  ],
+  "top_recipients": [
+    {
+      "name": "IOWA STATE UNIVERSITY ALUMNI ASSOCIATION",
+      "ein": "420987654",
+      "tier": "B",
+      "confidence": 0.97,
+      "city": "AMES",
+      "state": "IA",
+      "paid_usd": 33333,
+      "count": 1,
+      "last_tax_year": 2022
+    },
+    {
+      "name": "MCCALESTER COLLEGE ALUMNI ASSOCIATION",
+      "ein": null,
+      "tier": "U",
+      "confidence": null,
+      "city": "ST PAUL",
+      "state": "MN",
+      "paid_usd": 5556,
+      "count": 1,
+      "last_tax_year": 2022
+    }
+  ],
+  "recent_grants": [
+    {
+      "grant_id": "202343189349100114-pf_paid-0",
+      "tax_year": 2022,
+      "amount_type": "paid",
+      "amount_usd": 33333,
+      "noncash_amount_usd": null,
+      "recipient_name": "IOWA STATE UNIVERSITY ALUMNI ASSOCIATION",
+      "recipient_ein": "420987654",
+      "match_tier": "B",
+      "match_confidence": 0.97,
+      "match_method": "name_zip5_state_exact",
+      "purpose": "GENERAL SUPPORT",
+      "city": "AMES",
+      "state": "IA",
+      "recipient_type": "organization",
+      "object_id": "202343189349100114"
+    },
+    {
+      "grant_id": "202343189349100114-pf_paid-1",
+      "tax_year": 2022,
+      "amount_type": "paid",
+      "amount_usd": 5556,
+      "noncash_amount_usd": null,
+      "recipient_name": "MCCALESTER COLLEGE ALUMNI ASSOCIATION",
+      "recipient_ein": null,
+      "match_tier": "U",
+      "match_confidence": null,
+      "match_method": "no_candidates",
+      "purpose": "SCHOLARSHIP FUND",
+      "city": "ST PAUL",
+      "state": "MN",
+      "recipient_type": "organization",
+      "object_id": "202343189349100114"
+    },
+    {
+      "grant_id": "202343189349100114-pf_future-0",
+      "tax_year": 2022,
+      "amount_type": "approved_future",
+      "amount_usd": 12000,
+      "noncash_amount_usd": null,
+      "recipient_name": "UNIVERSITY OF IOWA ALUMNI ASSOCIATION",
+      "recipient_ein": "426012345",
+      "match_tier": "A",
+      "match_confidence": 1.0,
+      "match_method": "reported_ein_in_bmf",
+      "purpose": null,
+      "city": "IOWA CITY",
+      "state": "IA",
+      "recipient_type": "organization",
+      "object_id": "202343189349100114"
+    }
+  ],
+  "filings": [
+    {
+      "object_id": "202343189349100114",
+      "tax_period_end": "2022-12-31",
+      "filing_submission_date": "2023-11-14",
+      "return_version": "2022v5.0",
+      "filing_year": 2023,
+      "tax_year": 2022,
+      "form_type": "990PF"
+    }
+  ],
+  "chunked": false,
+  "dataset_version": "2026.09.0",
+  "built_at": "2026-09-02T18:32:09+00:00"
+}

@@ -20,3 +20,8 @@ data/interim/
 *.zip
 .DS_Store
 .wrangler/
+
+# hosted site
+site/node_modules/
+site/.wrangler/
+site/dist/
