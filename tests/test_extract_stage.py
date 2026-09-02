@@ -271,3 +271,28 @@ class TestDeflate64:
         with zipfile.ZipFile(zp) as z:
             info = z.getinfo("2019/201900000000000001_public.xml")
             assert read_member(z, info) == b"<Return/>"
+
+
+class TestReconcileIsPerYear:
+    def test_zip_only_counts_only_that_years_archives(self, conn):
+        """Once several postings are registered, a year's zip-only count must not include
+        every other year's members - the first multi-year run reported 790,998 for each."""
+        from funder_graph.pipeline.extract import _SCHEMA, reconcile
+
+        conn.execute(_SCHEMA)
+        conn.execute(
+            "INSERT INTO filings_index (object_id, filing_year, return_id, ein, tax_period, sub_date, "
+            "taxpayer_name, return_type, dln) VALUES "
+            "('201900000000000001', 2019, '1', '100000001', '201812', '2019-05-01', 'A', '990', '1')"
+        )
+        conn.execute(
+            "INSERT INTO zip_members (object_id, zip_file, member, bytes) VALUES "
+            "('201900000000000001', 'download990xml_2019_1.zip', 'a.xml', 1), "
+            "('201900000000000009', 'download990xml_2019_1.zip', 'b.xml', 1), "
+            "('202300000000000001', '2023_TEOS_XML_01A.zip', 'c.xml', 1), "
+            "('202300000000000002', '2023_TEOS_XML_01A.zip', 'd.xml', 1)"
+        )
+        r2019 = reconcile(conn, 2019)
+        r2023 = reconcile(conn, 2023)
+        assert (r2019.matched, r2019.index_only, r2019.zip_only) == (1, 0, 1)
+        assert (r2023.matched, r2023.index_only, r2023.zip_only) == (0, 0, 2)

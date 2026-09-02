@@ -282,11 +282,14 @@ def reconcile(conn: duckdb.DuckDBPyConnection, filing_year: int) -> Reconciliati
         "WHERE i.filing_year = ? AND z.object_id IS NULL",
         [filing_year],
     ).fetchone()
+    # Only this posting's archives: both IRS naming schemes carry the year in the file name.
     (zip_only,) = conn.execute(
         "SELECT COUNT(DISTINCT z.object_id) FROM zip_members z "
         "LEFT JOIN filings_index i USING (object_id) "
         "LEFT JOIN superseded_filings s USING (object_id) "
-        "WHERE i.object_id IS NULL AND s.object_id IS NULL"
+        "WHERE i.object_id IS NULL AND s.object_id IS NULL "
+        r"AND regexp_extract(z.zip_file, '(\d{4})', 1) = ?",
+        [str(filing_year)],
     ).fetchone()
     (matched,) = conn.execute(
         "SELECT COUNT(*) FROM filings_index i JOIN zip_members z USING (object_id) "
