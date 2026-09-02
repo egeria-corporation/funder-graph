@@ -35,6 +35,7 @@ import {
   vintageInfo,
 } from "./lib/store";
 import { Browse, BrowseIndex } from "./views/browse";
+import { DataIndex, type DatasetVersion } from "./views/dataindex";
 import { About, DataPage, Methodology } from "./views/docs";
 import { Funder, FunderYear } from "./views/funder";
 import { Landing } from "./views/landing";
@@ -45,6 +46,42 @@ import { llmsTxt, robotsTxt } from "./views/text";
 
 type Bindings = { Bindings: Env };
 const app = new Hono<Bindings>();
+
+/**
+ * data.opengrants.io is an R2 custom domain: objects only, so its root is a 404. This Worker
+ * also holds routes for that hostname's root and the product prefix roots, and renders an
+ * index from the bucket. Every other path on that host never reaches this code.
+ */
+const DATA_HOST = "data.opengrants.io";
+
+async function datasetVersions(
+  env: Env,
+): Promise<{ versions: DatasetVersion[]; latest: DatasetVersion | null }> {
+  const listed = await env.DATA.list({ prefix: `${env.DATA_PREFIX}/`, delimiter: "/" });
+  const names = (listed.delimitedPrefixes ?? [])
+    .map((p) => p.slice(env.DATA_PREFIX.length + 1).replace(/\/$/, ""))
+    .filter((n) => /^\d{4}\.\d{2}\.\d+$/.test(n))
+    .sort()
+    .reverse();
+  const read = async (version: string): Promise<DatasetVersion> => {
+    const obj = await env.DATA.get(`${env.DATA_PREFIX}/${version}/manifest.json`);
+    return { version, manifest: obj ? ((await obj.json()) as DatasetVersion["manifest"]) : null };
+  };
+  const versions = await Promise.all(names.map(read));
+  const latestObj = await env.DATA.get(`${env.DATA_PREFIX}/latest/manifest.json`);
+  const latest = latestObj
+    ? { version: "latest", manifest: (await latestObj.json()) as DatasetVersion["manifest"] }
+    : null;
+  return { versions, latest };
+}
+
+app.use("*", async (c, next) => {
+  if (new URL(c.req.url).hostname !== DATA_HOST) return next();
+  const { versions, latest } = await datasetVersions(c.env);
+  return c.html(<DataIndex versions={versions} latest={latest} />, 200, {
+    "cache-control": "public, max-age=3600, stale-while-revalidate=86400",
+  });
+});
 
 const WEEK = 604_800;
 const DAY = 86_400;

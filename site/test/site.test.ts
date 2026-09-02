@@ -187,3 +187,49 @@ describe("routes", () => {
     expect(await res.text()).toContain("Page not found");
   });
 });
+
+describe("the data domain index", () => {
+  it("renders the datasets from the bucket at the root of data.opengrants.io", async () => {
+    const manifest = {
+      dataset_version: "2026.09.0",
+      generated_at: "2026-09-02T18:00:00+00:00",
+      license: "Apache-2.0",
+      filing_years: [2023],
+      rows: { total: 2847781, paid: 2800708 },
+      files: [
+        {
+          path: "grants/filing_year=2023/part-0000.parquet",
+          bytes: 1,
+          rows: 2847781,
+          filing_year: 2023,
+        },
+      ],
+    };
+    const DATA = {
+      list: async () => ({
+        delimitedPrefixes: [
+          "funder-graph/2026.09.0/",
+          "funder-graph/latest/",
+          "funder-graph/_smoke/",
+        ],
+      }),
+      get: async (key: string) =>
+        key.endsWith("/manifest.json") ? { json: async () => manifest } : null,
+    } as unknown as R2Bucket;
+    const res = await app.request("https://data.opengrants.io/", {}, env({ DATA }));
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("Open datasets, served as objects");
+    expect(body).toContain("2026.09.0");
+    expect(body).toContain("2,847,781");
+    expect(body).toContain("latest/manifest.json");
+    expect(body).toContain("grants/filing_year=2023/part-0000.parquet");
+    expect(body).not.toContain("_smoke");
+    expect(body).not.toContain("undefined");
+  });
+
+  it("does not touch the funders site's routing", async () => {
+    const res = await app.request("/robots.txt", {}, env());
+    expect(res.status).toBe(200);
+  });
+});

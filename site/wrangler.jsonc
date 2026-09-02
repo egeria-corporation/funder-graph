@@ -34,5 +34,13 @@
     "PAYLOAD_BASE_URL": ""
   },
 
-  "routes": [{ "pattern": "funders.opengrants.io", "custom_domain": true }]
+  "routes": [
+    { "pattern": "funders.opengrants.io", "custom_domain": true },
+    // The data domain is an R2 custom domain; only these exact paths route here, for an index.
+    { "pattern": "data.opengrants.io/", "zone_name": "opengrants.io" },
+    { "pattern": "data.opengrants.io/funder-graph", "zone_name": "opengrants.io" },
+    { "pattern": "data.opengrants.io/funder-graph/", "zone_name": "opengrants.io" },
+    { "pattern": "data.opengrants.io/funder-graph/latest", "zone_name": "opengrants.io" },
+    { "pattern": "data.opengrants.io/funder-graph/latest/", "zone_name": "opengrants.io" }
+  ]
 }
