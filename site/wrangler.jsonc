@@ -15,11 +15,15 @@
 
   // The index: what is searched or ranked. Grant rows never go in D1.
   "d1_databases": [
-    { "binding": "DB", "database_name": "funder-graph", "database_id": "<set on first deploy>" }
+    {
+      "binding": "DB",
+      "database_name": "funder-graph",
+      "database_id": "7b25ae66-0ffe-4fc3-ba25-8a4faaf4b6a3"
+    }
   ],
 
   // One key, current_dataset_version. Flipping it is the cutover.
-  "kv_namespaces": [{ "binding": "VINTAGE", "id": "<set on first deploy>" }],
+  "kv_namespaces": [{ "binding": "VINTAGE", "id": "e32b5939e75a420782c1309ec06cc0af" }],
 
   "vars": {
     "SITE_ORIGIN": "https://funders.opengrants.io",
