@@ -153,6 +153,7 @@ The stages, each checkpointed in `build/state.duckdb` and safe to re-run:
 | `build bmf --file eo1.csv ... --vintage 2026-08` | The Business Master File into the build state, blocking keys precomputed | |
 | `build resolve` | Each distinct recipient tuple resolved once; partitions rewritten with the match columns | |
 | `build eval` | The matcher scored on `tests/fixtures/matching/labeled_pairs.csv` | exits 4 under 1,000 pairs or a missed tier target |
+| `build publish` | one object per filing year + `manifest.json`, uploaded through wrangler's login; `--dry-run` and `--to-dir` rehearse | never below the precision gates: `build eval` first |
 
 A gate that fails is a stop-and-ask, not a threshold to lower.
 

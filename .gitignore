@@ -19,3 +19,4 @@ data/interim/
 *.duckdb
 *.zip
 .DS_Store
+.wrangler/
