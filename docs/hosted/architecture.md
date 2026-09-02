@@ -70,7 +70,7 @@ Three stores, each doing the one thing it is good at.
 ### R2 — bulk facts
 
 ```
-r2://funder-graph/
+r2://opengrants-data/funder-graph/     # bucket opengrants-data, custom domain data.opengrants.io
   2026.08.0/
     grants/filing_year=2019/part-*.parquet      # the public dataset
     grants/filing_year=2020/...
@@ -81,7 +81,7 @@ r2://funder-graph/
     recipients/363673599.json                   # precomputed per-recipient payload
     sitemaps/sitemap-index.xml
     sitemaps/funders-00001.xml.gz
-  latest -> 2026.08.0                           # pointer object, not a copy
+  latest/                                       # a copy of the current version's objects (D-009)
 ```
 
 **Why precomputed JSON rather than querying Parquet at request time:** a Worker cannot run DuckDB.
