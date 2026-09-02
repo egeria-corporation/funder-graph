@@ -147,3 +147,40 @@ class TestConfigAndUploader:
         assert client.calls == [
             ("funder-graph/v/x.parquet", "opengrants-data", "application/vnd.apache.parquet")
         ]
+
+
+class TestEnvFile:
+    def test_env_file_values_feed_the_config_and_never_touch_the_process_environment(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import os
+
+        from funder_graph.pipeline.r2_upload import load_env_file
+
+        f = tmp_path / "r2.env"
+        f.write_text(
+            "# the R2 token for the ingest\n"
+            "R2_ACCESS_KEY_ID=abc123\n"
+            'R2_SECRET_ACCESS_KEY="s3cr3t=with=equals"\n'
+            "export CLOUDFLARE_ACCOUNT_ID = a5a2b776dd851a4e605683ef858e50de\n"
+            "\n",
+            encoding="utf-8",
+        )
+        for k in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "CLOUDFLARE_ACCOUNT_ID"):
+            monkeypatch.delenv(k, raising=False)
+        values = load_env_file(f)
+        assert values == {
+            "R2_ACCESS_KEY_ID": "abc123",
+            "R2_SECRET_ACCESS_KEY": "s3cr3t=with=equals",
+            "CLOUDFLARE_ACCOUNT_ID": "a5a2b776dd851a4e605683ef858e50de",
+        }
+        cfg = R2Config.from_env(values)
+        assert cfg.access_key_id == "abc123"
+        assert cfg.endpoint == "https://a5a2b776dd851a4e605683ef858e50de.r2.cloudflarestorage.com"
+        assert "R2_SECRET_ACCESS_KEY" not in os.environ
+
+    def test_missing_env_file_is_a_clear_error(self, tmp_path: Path) -> None:
+        from funder_graph.pipeline.r2_upload import load_env_file
+
+        with pytest.raises(MissingCredentials, match="does not exist"):
+            load_env_file(tmp_path / "nope.env")

@@ -588,6 +588,12 @@ def build_sample_for_labeling(n: int, seed: str, out: Path | None, work_dir: Pat
 @click.option(
     "--s3", "use_s3", is_flag=True, help="Upload through the R2 S3 API (needs the token)."
 )
+@click.option(
+    "--env-file",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="KEY=VALUE file holding the R2 variables, kept outside the repo.",
+)
 def build_publish(
     work_dir: Path | None,
     dataset_version: str | None,
@@ -597,6 +603,7 @@ def build_publish(
     to_dir: Path | None,
     dry_run: bool,
     use_s3: bool,
+    env_file: Path | None,
 ) -> None:
     """Stage one object per filing year plus manifest.json, then upload (D-009).
     Never run this below the precision gates: `build eval` first.
@@ -648,13 +655,13 @@ def build_publish(
     elif use_s3:
         from funder_graph.pipeline.r2_upload import (
             MissingCredentials,
-            R2Config,
             S3Uploader,
+            credentials,
             make_client,
         )
 
         try:
-            uploader = S3Uploader(make_client(R2Config.from_env()), bucket or DEFAULT_BUCKET)
+            uploader = S3Uploader(make_client(credentials(env_file)), bucket or DEFAULT_BUCKET)
         except MissingCredentials as exc:
             _emit(f"STOP: {exc}")
             sys.exit(3)
@@ -706,6 +713,12 @@ def build_site_cmd(work_dir: Path | None, years: str | None, limit: int | None) 
     "--no-skip", is_flag=True, help="Upload everything, even objects whose content matches."
 )
 @click.option("--dry-run", is_flag=True, help="Count what would upload; touch nothing.")
+@click.option(
+    "--env-file",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="KEY=VALUE file holding the R2 variables, kept outside the repo.",
+)
 def build_site_upload(
     work_dir: Path | None,
     dataset_version: str,
@@ -715,6 +728,7 @@ def build_site_upload(
     workers: int,
     no_skip: bool,
     dry_run: bool,
+    env_file: Path | None,
 ) -> None:
     """Bulk-upload a version's site payloads to R2 through the S3 API (needs the R2 token).
     Credentials come from R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and CLOUDFLARE_ACCOUNT_ID
@@ -723,7 +737,7 @@ def build_site_upload(
     from funder_graph.pipeline.publish import DEFAULT_BUCKET, DEFAULT_PREFIX
     from funder_graph.pipeline.r2_upload import (
         MissingCredentials,
-        R2Config,
+        credentials,
         make_client,
         plan,
         upload_tree,
@@ -741,7 +755,7 @@ def build_site_upload(
     if dry_run:
         return
     try:
-        client = make_client(R2Config.from_env())
+        client = make_client(credentials(env_file))
     except MissingCredentials as exc:
         _emit(f"STOP: {exc}")
         sys.exit(3)
