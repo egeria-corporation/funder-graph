@@ -11,12 +11,16 @@ export const NotFound: FC<{
   ein?: string;
   year?: number;
   funderExists?: boolean;
-}> = ({ kind, ein, year, funderExists }) => {
+  /** The index knows this recipient; its page is not published for this version yet. */
+  indexed?: boolean;
+}> = ({ kind, ein, year, funderExists, indexed }) => {
   const what =
     kind === "funder"
       ? `No funder with EIN ${ein ? displayEin(ein) : ""} in this dataset`
       : kind === "recipient"
-        ? `No resolved recipient with EIN ${ein ? displayEin(ein) : ""} in this dataset`
+        ? indexed
+          ? `The page for EIN ${ein ? displayEin(ein) : ""} is not published yet`
+          : `No resolved recipient with EIN ${ein ? displayEin(ein) : ""} in this dataset`
         : kind === "year"
           ? `No grants for tax year ${year} on this funder`
           : kind === "browse"
@@ -34,7 +38,14 @@ export const NotFound: FC<{
               from. Absence here is not evidence that it makes no grants.
             </p>
           ) : null}
-          {kind === "recipient" ? (
+          {kind === "recipient" && indexed ? (
+            <p>
+              This organization is in the index as a resolved recipient, but its page has not been
+              published for this dataset version yet. Recipient pages are published in bulk after
+              the funder pages; check back, or find it through the funders that named it.
+            </p>
+          ) : null}
+          {kind === "recipient" && !indexed ? (
             <p>
               Recipient pages exist only for organizations the matcher resolved to an EIN in the IRS
               Business Master File. This one may be named on filings under a name that did not

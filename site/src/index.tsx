@@ -199,9 +199,18 @@ app.get("/recipients/:ein", async (c) => {
     if (!row || !payload) {
       // An organization that is a funder but not a resolved recipient: point there.
       const asFunder = await funderIndex(c.env, ein);
-      return c.html(<NotFound ein={ein} kind="recipient" funderExists={Boolean(asFunder)} />, 404, {
-        "cache-control": cacheControl(DAY),
-      });
+      return c.html(
+        <NotFound
+          ein={ein}
+          kind="recipient"
+          funderExists={Boolean(asFunder)}
+          indexed={Boolean(row)}
+        />,
+        404,
+        {
+          "cache-control": cacheControl(DAY),
+        },
+      );
     }
     return c.html(
       <Recipient
