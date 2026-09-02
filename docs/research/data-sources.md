@@ -363,10 +363,21 @@ Required for entity resolution, which is required because 990-PF Part XV usually
 recipient EIN.
 
 - **Page:** https://www.irs.gov/charities-non-profits/tax-exempt-organization-search-bulk-data-downloads
-- **Format:** pipe-delimited ASCII text, ZIP-wrapped. Published in regional files that must be
-  concatenated.
+- **Files, verified 2026-09-02:** four regional CSVs served directly, not ZIP-wrapped:
+  `https://www.irs.gov/pub/irs-soi/eo1.csv` (48.6 MB, 278,014 rows), `eo2.csv` (125.7 MB,
+  719,134 rows), `eo3.csv` (164.6 MB, 955,286 rows), `eo4.csv` (0.9 MB, 4,906 rows) - 340 MB and
+  1,957,340 organizations in the 2026-08 vintage (`Last-Modified: 10 Aug 2026`).
+- **Format:** comma-delimited **with a header** (28 columns, `EIN` .. `SORT_NAME`) and RFC 4180
+  quoting; some rows carry a comma inside a quoted field. Not pipe-delimited, which the earlier
+  draft of this note said. Parsed by `grantcheck.ingest.teos.parse_bmf`, which asserts the header
+  by name so an inserted column fails loudly. The files carry **duplicate EIN rows** (EIN
+  000019818 appears twice in the 49-row fixture alone); the loader keeps one per EIN and reports
+  rows parsed and organizations kept separately.
+- **Loading:** `funder-graph build bmf --file eo1.csv --file eo2.csv --file eo3.csv --file eo4.csv
+  --vintage 2026-08`, all four in one invocation. The vintage is the posting month, stamped on
+  every row and on every resolution made against it.
 - **Cadence:** monthly.
-- **Scale:** roughly 1.9 million rows.
+- **Scale:** roughly 1.96 million rows.
 - **Key fields:** EIN, legal name, sort name (often the DBA), street, city, state, ZIP, subsection
   code, classification, ruling date, deductibility code, foundation code, NTEE code, asset amount,
   revenue amount, and the tax period of the most recent filing.
