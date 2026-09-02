@@ -44,11 +44,16 @@ IRS-Efile-Database
 form-990-xml-mapper
   Author:  GivingTuesday (Data Commons)
   Source:  https://github.com/Giving-Tuesday/form-990-xml-mapper
-  License: see LICENSE at the pinned commit
-  Use:     Enumerates every XPath present in a given 990 XML schema version. We
-           run it as a drift detector: XPaths present in a filing's schema
-           version but absent from our concordance-derived map are reported, not
-           silently dropped.
+  License: MIT, as read from LICENSE on the main branch (2026-09-02).
+  Use:     Enumerates every XPath present in a given 990 XML schema version,
+           from the IRS XSD files. The per-version inventories vendored under
+           data/concordance/raw-mappings/ are this tool's output as run by the
+           Nonprofit Open Data Collective; their eight columns are its eight
+           columns. We use those inventories as the coverage-matrix input and
+           run the tool ourselves only for schema versions they do not yet
+           cover, contributing the resulting files back. XPaths present in a
+           filing's schema version but absent from our concordance-derived map
+           are reported, not silently dropped.
 
 form-990-xml-parser
   Author:  GivingTuesday (Data Commons)

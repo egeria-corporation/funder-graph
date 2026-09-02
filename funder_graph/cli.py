@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import dataclasses
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -121,3 +122,42 @@ def concordance_check() -> None:
             _emit(f"  {m}")
         sys.exit(1)
     _emit("every logical grant field resolves to at least one concordance XPath")
+
+
+@main.group()
+def build() -> None:
+    """Pipeline stages. Users do not run these; the published dataset is the product."""
+
+
+@build.command("download")
+@click.option(
+    "--years", default="2019-2026", show_default=True, help="e.g. 2023, 2019-2026, 2019,2021"
+)
+@click.option(
+    "--work-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Defaults to $FUNDER_GRAPH_WORK_DIR or ./build",
+)
+def build_download(years: str, work_dir: Path | None) -> None:
+    """Fetch the IRS bulk archives and index CSVs, resumably, recording checksums."""
+    from funder_graph.pipeline.download import download, parse_years
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    wanted = parse_years(years)
+    _emit(f"downloading {', '.join(map(str, wanted))} into {work} (4 connections, resumable)")
+
+    def report(f) -> None:
+        size = f"{(f.bytes or 0) / 1e6:9.1f} MB" if f.bytes else f"{'':12}"
+        tail = f"  {f.sha256[:12]}" if f.sha256 else (f"  {f.error}" if f.error else "")
+        _emit(f"  {f.status:8} {f.year} {f.filename:28}{size}{tail}")
+
+    results = download(wanted, work, progress=report)
+    done = [f for f in results if f.status == "complete"]
+    failed = [f for f in results if f.status != "complete"]
+    total = sum(f.bytes or 0 for f in done)
+    _emit("")
+    _emit(f"{len(done)} complete ({total / 1e9:.2f} GB), {len(failed)} not complete")
+    if failed:
+        _emit("re-run to resume; partial files are kept and continued")
+        sys.exit(1)

@@ -184,6 +184,17 @@ with three things to know that cost a morning to learn:
    Schedule I XPaths. The `versions` column was simply never regenerated from them. That makes
    the coverage matrix a join rather than a hand-check, and makes the upstream contribution a
    PR that extends `versions` from their own inventories, weighted by real filing volume.
+4. **Upstream is already building the volume-weighted matrix — for the 990 core only.**
+   `draft-updates/XPATH-VERSION-COUNT.CSV` (verified 2026-09-02) has columns
+   `XPATH, VERSION, COUNT`: for each XPath, the `;;`-joined list of schema versions it appears
+   in and the number of real filings carrying it, through `2023v`. The Schedule I
+   `RecipientTable` row alone stands on 7,156,443 filings. It contains zero Part XV rows. Our
+   deliverable is the 990-PF counterpart in those exact three columns. The `raw-mappings/`
+   inventories are GivingTuesday's `form-990-xml-mapper` output (MIT; input is the IRS XSD set
+   for one version, output is one CSV with these same eight columns), run by upstream through
+   `2022v5.0`. The 2023 bulk posting carries `2023v4.0`, `2023v5.0` and `2023v5.1` filings,
+   which neither the inventories nor the draft matrix cover yet; we run the mapper for those
+   three and contribute the files.
 
 All of it is vendored under `data/concordance/` with per-file SHA-256s in
 `data/upstream-pins.toml`.

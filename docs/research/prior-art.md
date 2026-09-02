@@ -146,18 +146,27 @@ Concrete, scheduled, and assigned. Not "we intend to give back."
    the `returnVersion`, the logical field, the OBJECT_ID of a filing that exhibits it, the XPath we
    believe is correct, and the count of affected filings in our corpus. Volume matters less than
    quality: a gap report with a reproducing document is actionable, a list of complaints is not.
-2. **Publish the schema-version coverage matrix.** Every `returnVersion` we encountered, how many
-   filings carried it, and whether the concordance covered Part XV and Schedule I for it. Nobody has
-   published this. It tells the concordance maintainers exactly where their coverage is thin,
-   weighted by real-world filing volume rather than by version count. This is the single most useful
-   thing we can hand back, and it is a byproduct of work we have to do anyway.
+2. **Publish the schema-version coverage matrix — as the 990-PF half of a table upstream is
+   already building.** Their `draft-updates/XPATH-VERSION-COUNT.CSV` (verified 2026-09-02) is a
+   per-XPath, per-version filing-count table from real filings, through `2023v`, with 7.16 million
+   filings behind the Schedule I row alone. It is exactly this deliverable, for the 990 core. It
+   has zero Part XV rows. We produce the 990-PF counterpart in their three columns —
+   `XPATH, VERSION, COUNT` — from our corpus, so it merges rather than competes. Alongside it, a PR
+   that regenerates the `versions` column of `F990-PF-FULL.CSV` from their own
+   `03-versions/raw-mappings/` inventories, which stop being applied to that file at `2016v3.0`
+   while the XPaths themselves match `2022v5.0` filings. This is the single most useful thing we
+   can hand back, and it is a byproduct of work we have to do anyway.
 3. **Contribute a machine-readable, grant-edge-scoped build of the concordance** as a PR upstream —
    the subset of variables that carry grant edges, emitted as JSON, with tests. If upstream does not
    want it in their repo, publish it as a separate small package that credits them clearly, and link
    it from their issue.
-4. **Open an issue on form-990-xml-mapper** describing our drift-detection usage. Tool authors
-   rarely hear how their tools are actually used downstream, and the report may surface changes that
-   make the tool better for everyone.
+4. **Open an issue on form-990-xml-mapper** describing our drift-detection usage, and contribute
+   the schema versions it has not yet been run against. The Nonprofit Open Data Collective's
+   `03-versions/raw-mappings/` inventories are this tool's output — same eight columns — run
+   through `2022v5.0`. The 2023 bulk posting already carries `2023v4.0`, `2023v5.0` and `2023v5.1`
+   filings. We run the mapper on those three XSD sets exactly as upstream did and offer the files
+   to both projects. Tool authors rarely hear how their tools are actually used downstream, and the
+   report may surface changes that make the tool better for everyone.
 5. **Reach out before launch, not after.** A short note to the Nonprofit Open Data Collective and
    GivingTuesday describing what we are building, what we are using of theirs, and asking whether
    anything about our approach concerns them — sent *before* the public launch. Costs an afternoon.
