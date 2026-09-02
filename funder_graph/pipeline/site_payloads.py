@@ -512,6 +512,7 @@ def build_site(
     years: list[int] | None = None,
     limit: int | None = None,
     now: datetime | None = None,
+    bmf_csv: str | None = None,
 ) -> SiteBuild:
     """Write every payload for the dataset in ``parquet_dir`` under ``out_root/<version>/``."""
     files = _grant_files(parquet_dir, years)
@@ -521,7 +522,14 @@ def build_site(
     conn.execute(
         f"CREATE VIEW grants AS SELECT * FROM read_parquet({_list(files)}, hive_partitioning = true)"
     )
-    if state_db and state_db.exists():
+    if bmf_csv:
+        # The IRS BMF CSVs directly (build/bmf/eo*.csv): no lock on the state file, which a
+        # running pipeline stage holds. Same six columns the matcher loaded from them.
+        conn.execute(
+            "CREATE VIEW bmf AS SELECT EIN AS ein, NAME AS name, CITY AS city, STATE AS state, "
+            f"NTEE_CD AS ntee_cd, SUBSECTION AS subsection FROM read_csv_auto('{bmf_csv}', all_varchar = true)"
+        )
+    elif state_db and state_db.exists():
         conn.execute(f"ATTACH '{state_db.as_posix()}' AS state (READ_ONLY)")
         conn.execute(
             "CREATE VIEW bmf AS SELECT ein, name, city, state, ntee_cd, subsection FROM state.bmf"

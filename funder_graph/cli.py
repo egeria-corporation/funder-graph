@@ -684,7 +684,14 @@ def build_publish(
 @click.option(
     "--limit", type=int, default=None, help="Top-N funders by dollars paid: a local sample."
 )
-def build_site_cmd(work_dir: Path | None, years: str | None, limit: int | None) -> None:
+@click.option(
+    "--bmf-csv",
+    default=None,
+    help="Read the BMF from these CSVs (a glob, e.g. build/bmf/eo*.csv) instead of the state file.",
+)
+def build_site_cmd(
+    work_dir: Path | None, years: str | None, limit: int | None, bmf_csv: str | None
+) -> None:
     """Write the hosted site's payloads, D1 rows and sitemaps under build/site/<version>/."""
     from funder_graph.pipeline.download import parse_years
     from funder_graph.pipeline.site_payloads import build_site
@@ -692,7 +699,12 @@ def build_site_cmd(work_dir: Path | None, years: str | None, limit: int | None) 
     work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
     wanted = parse_years(years) if years else None
     b = build_site(
-        work / "parquet", work / "state.duckdb", work / "site", years=wanted, limit=limit
+        work / "parquet",
+        work / "state.duckdb",
+        work / "site",
+        years=wanted,
+        limit=limit,
+        bmf_csv=bmf_csv,
     )
     _emit(
         f"site {b.dataset_version}: {b.funders:,} funders ({b.funders_chunked:,} chunked), "

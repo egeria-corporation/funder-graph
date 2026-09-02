@@ -137,3 +137,27 @@ class TestRecipientsIndexAndSitemaps:
         assert b.funders == 1
         manifest = json.loads((b.out_dir / "site-manifest.json").read_text(encoding="utf-8"))
         assert manifest["sample_limit"] == 1
+
+
+class TestBmfFromCsv:
+    def test_bmf_from_csv_fills_city_and_ntee_without_the_state_file(
+        self, parquet_dir: Path, tmp_path: Path
+    ) -> None:
+        header = (
+            "EIN,NAME,ICO,STREET,CITY,STATE,ZIP,GROUP,SUBSECTION,AFFILIATION,CLASSIFICATION,"
+            "RULING,DEDUCTIBILITY,FOUNDATION,ACTIVITY,ORGANIZATION,STATUS,TAX_PERIOD,ASSET_CD,"
+            "INCOME_CD,FILING_REQ_CD,PF_FILING_REQ_CD,ACCT_PD,ASSET_AMT,INCOME_AMT,REVENUE_AMT,"
+            "NTEE_CD,SORT_NAME"
+        )
+        row = (
+            "846725611,BRODERICK CHARITABLE FOUNDATION TRUST,,PO BOX 1,DES MOINES,IA,50309,0000,"
+            "03,3,1000,199001,1,04,0,1,01,202212,3,3,1,1,12,0,0,0,T20,"
+        )
+        csv = tmp_path / "eo1.csv"
+        csv.write_text(header + "\n" + row + "\n", encoding="utf-8")
+        b = build_site(parquet_dir, None, tmp_path / "site", bmf_csv=csv.as_posix())
+        payload = json.loads((b.out_dir / "funders" / "846725611.json").read_text(encoding="utf-8"))
+        assert payload["city"] == "DES MOINES"
+        assert payload["state"] == "IA"
+        assert payload["ntee_code"] == "T20"
+        assert payload["subsection_code"] == "03"
