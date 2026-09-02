@@ -81,7 +81,11 @@ def enumerate_files(
 ) -> list[SourceFile]:
     """Every ZIP and index CSV the landing page links for the requested years.
 
-    Returns them in a stable order (year, then filename) so two runs plan identically.
+    Returns them in a stable order so two runs plan identically: by year, then each year's
+    index CSV *first*, then the archives. The index is small and is what `build extract`
+    needs to start on the archives that have already landed; fetching it last - which plain
+    filename order does, since "index_" sorts after "2023_" - makes the whole posting wait on
+    its smallest file.
     """
     with _client(transport) as client:
         response = client.get(LANDING_PAGE)
@@ -101,7 +105,7 @@ def enumerate_files(
         year = int(match.group(1))
         if year in wanted:
             found[text] = SourceFile(url=text, year=year, filename=text.rsplit("/", 1)[-1])
-    return sorted(found.values(), key=lambda f: (f.year, f.filename))
+    return sorted(found.values(), key=lambda f: (f.year, not f.is_index, f.filename))
 
 
 def parse_years(spec: str) -> list[int]:

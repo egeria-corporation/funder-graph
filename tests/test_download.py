@@ -88,10 +88,12 @@ class TestEnumeration:
     def test_reads_the_landing_page_not_a_directory_listing(self) -> None:
         irs = FakeIRS()
         files = enumerate_files([2023], transport(irs))
+        # The index comes first: it is what `build extract` needs to start on archives as
+        # they land, and plain filename order would fetch it last.
         assert [f.filename for f in files] == [
+            "index_2023.csv",
             "2023_TEOS_XML_01A.zip",
             "2023_TEOS_XML_12A.zip",
-            "index_2023.csv",
         ]
         assert irs.requests == [("GET", LANDING_PAGE)]
 
