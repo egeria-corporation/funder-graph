@@ -29,6 +29,7 @@ from funder_graph.pipeline.write import SCHEMA
 from funder_graph.resolve.bmf import bmf_record, ensure_bmf_schema, insert_bmf_records
 from funder_graph.resolve.match import (
     AMBIGUITY_MARGIN,
+    CANDIDATE_CAP,
     JW_STRONG,
     TIER_B_CEIL,
     TIER_B_FLOOR,
@@ -504,3 +505,29 @@ class TestStage:
             "CREATE TABLE resolutions (name_normalized VARCHAR, name_raw VARCHAR, city VARCHAR, state VARCHAR, zip5 VARCHAR, ein_reported VARCHAR, recipient_type VARCHAR, tier VARCHAR)"
         )
         assert pending_recipients(conn, []) == []
+
+
+class TestCandidateCap:
+    """Chapter-style names clear the prefilter against hundreds of rows; the SQL keeps fifty."""
+
+    def test_at_most_cap_candidates_and_the_tuple_stays_ambiguous(self, conn) -> None:
+        rows = [
+            bmf_record(
+                _row(
+                    f"2000000{i:02d}",
+                    f"ROTARY CLUB OF SPRINGFIELD {i}",
+                    "SPRINGFIELD",
+                    "IL",
+                    "62701",
+                    "",
+                ),
+                "2026-08",
+            )
+            for i in range(CANDIDATE_CAP + 20)
+        ]
+        insert_bmf_records(conn, rows)
+        recipient = rcpt("ROTARY CLUB OF SPRINGFIELD", state="IL")
+        by_idx, _ = block(conn, [recipient])
+        assert 0 < len(by_idx[0]) <= CANDIDATE_CAP
+        assert all(c.sim >= 0.90 for c in by_idx[0])
+        assert resolve_all(conn, [recipient])[0].tier == "U"

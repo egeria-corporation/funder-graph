@@ -568,5 +568,132 @@ def build_sample_for_labeling(n: int, seed: str, out: Path | None, work_dir: Pat
     _emit(f"{len(rows):,} rows ({shares or 'none'}) -> {out}")
 
 
+@build.command("publish")
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+@click.option(
+    "--dataset-version",
+    default=None,
+    help="Must equal the version the rows carry; defaults to it.",
+)
+@click.option("--bucket", default=None, show_default="opengrants-data")
+@click.option("--prefix", default=None, show_default="funder-graph")
+@click.option("--latest/--no-latest", default=True, show_default=True)
+@click.option(
+    "--to-dir",
+    type=click.Path(file_okay=False, path_type=Path),
+    default=None,
+    help="Upload into this directory instead of the bucket: a rehearsal.",
+)
+@click.option("--dry-run", is_flag=True, help="Stage and print the manifest; upload nothing.")
+def build_publish(
+    work_dir: Path | None,
+    dataset_version: str | None,
+    bucket: str | None,
+    prefix: str | None,
+    latest: bool,
+    to_dir: Path | None,
+    dry_run: bool,
+) -> None:
+    """Stage one object per filing year plus manifest.json, then upload (D-009).
+    Never run this below the precision gates: `build eval` first.
+    """
+    import duckdb
+
+    from funder_graph.pipeline.publish import (
+        DEFAULT_BUCKET,
+        DEFAULT_PREFIX,
+        DirUploader,
+        PublishError,
+        WranglerUploader,
+        stage,
+        upload,
+    )
+    from funder_graph.resolve.bmf import bmf_vintage
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    vintage = None
+    state = work / "state.duckdb"
+    if state.exists():
+        conn = duckdb.connect(str(state), read_only=True)
+        try:
+            vintage = bmf_vintage(conn)
+        finally:
+            conn.close()
+    try:
+        manifest = stage(
+            work / "parquet", work / "publish", dataset_version=dataset_version, bmf_vintage=vintage
+        )
+    except PublishError as exc:
+        _emit(f"STOP: {exc}")
+        sys.exit(2)
+    tiers = ", ".join(f"{k}={v:,}" for k, v in sorted(manifest.match_tiers.items()))
+    _emit(
+        f"staged {manifest.dataset_version}: {manifest.rows['total']:,} rows in "
+        f"{len(manifest.files)} objects, years {manifest.filing_years}, tiers {tiers}; "
+        f"concordance {manifest.concordance_version}, BMF {manifest.bmf_vintage}"
+    )
+    for url in manifest.urls(prefix=prefix or DEFAULT_PREFIX):
+        _emit(f"  {url}")
+    if dry_run:
+        _emit(
+            f"dry run: nothing uploaded; staging in {work / 'publish' / manifest.dataset_version}"
+        )
+        return
+    uploader = DirUploader(to_dir) if to_dir else WranglerUploader(bucket or DEFAULT_BUCKET)
+    try:
+        keys = upload(
+            work / "publish", manifest, uploader, prefix=prefix or DEFAULT_PREFIX, latest=latest
+        )
+    except PublishError as exc:
+        _emit(f"STOP: {exc}")
+        sys.exit(3)
+    where = str(to_dir) if to_dir else f"r2://{bucket or DEFAULT_BUCKET}"
+    _emit(f"uploaded {len(keys)} objects to {where} ({'with' if latest else 'without'} latest/)")
+
+
+@main.group()
+def dataset() -> None:
+    """The published dataset, as a reader sees it."""
+
+
+@dataset.command("info")
+@click.option("--dataset-version", default="latest", show_default=True)
+@click.option("--base-url", default=None, show_default="https://data.opengrants.io/funder-graph")
+def dataset_info(dataset_version: str, base_url: str | None) -> None:
+    """Fetch manifest.json for a version and print what you would be querying."""
+    import json
+    from urllib.error import URLError
+    from urllib.request import urlopen
+
+    from funder_graph.pipeline.publish import DEFAULT_PREFIX, PUBLIC_BASE_URL
+
+    base = (base_url or f"{PUBLIC_BASE_URL}/{DEFAULT_PREFIX}").rstrip("/")
+    url = f"{base}/{dataset_version}/manifest.json"
+    try:
+        with urlopen(url, timeout=20) as resp:
+            manifest = json.load(resp)
+    except URLError as exc:
+        _emit(f"could not fetch {url}: {exc}")
+        sys.exit(1)
+    _emit(f"dataset_version   {manifest['dataset_version']}   (asked for {dataset_version})")
+    _emit(f"generated_at      {manifest['generated_at']}")
+    _emit(f"concordance       {manifest.get('concordance_version')}")
+    _emit(f"bmf_vintage       {manifest.get('bmf_vintage')}")
+    _emit(f"license           {manifest.get('license')}")
+    rows = manifest.get("rows", {})
+    _emit(
+        f"rows              {rows.get('total', 0):,} "
+        + " ".join(f"{k}={v:,}" for k, v in rows.items() if k != "total")
+    )
+    tiers = manifest.get("match_tiers", {})
+    _emit("match_tiers       " + " ".join(f"{k}={v:,}" for k, v in sorted(tiers.items())))
+    _emit(f"filing_years      {manifest.get('filing_years')}")
+    _emit("files             one URL per filing year; pass this list to read_parquet:")
+    for f in manifest.get("files", []):
+        _emit(
+            f"  {base}/{manifest['dataset_version']}/{f['path']}   ({f['rows']:,} rows, {f['bytes']:,} bytes)"
+        )
+
+
 if __name__ == "__main__":
     main()

@@ -63,7 +63,8 @@ SELECT recipient_name_raw,
        tax_year,
        grant_purpose
 FROM read_parquet(
-  'https://data.opengrants.io/funder-graph/latest/grants/*/*.parquet',
+  [ 'https://data.opengrants.io/funder-graph/latest/grants/filing_year=2023/part-0000.parquet',
+    'https://data.opengrants.io/funder-graph/latest/grants/filing_year=2024/part-0000.parquet' ],
   hive_partitioning = 1
 )
 WHERE funder_ein = '941156365'   -- The David and Lucile Packard Foundation
@@ -76,11 +77,20 @@ That returns real rows in about a second. It does not download the dataset. Duck
 Parquet footer over HTTP range requests, prunes the partitions and row groups it does not need,
 and pulls only the bytes that matter — typically a few megabytes out of several gigabytes.
 
+One URL per filing year, listed explicitly: HTTP has no directory listing, so DuckDB cannot glob
+over HTTPS. Every year is exactly one object at a predictable path, and
+[`manifest.json`](https://data.opengrants.io/funder-graph/latest/manifest.json) carries the full
+list with row counts and checksums (`funder-graph dataset info` prints it).
+
 Reverse the question. Who has funded Feeding America (EIN 36-3673599)?
 
 ```sql
 SELECT funder_name, SUM(amount_usd) AS total, COUNT(*) AS grants, MAX(tax_year) AS latest
-FROM read_parquet('https://data.opengrants.io/funder-graph/latest/grants/*/*.parquet', hive_partitioning = 1)
+FROM read_parquet(
+  [ 'https://data.opengrants.io/funder-graph/latest/grants/filing_year=2023/part-0000.parquet',
+    'https://data.opengrants.io/funder-graph/latest/grants/filing_year=2024/part-0000.parquet' ],
+  hive_partitioning = 1
+)
 WHERE recipient_ein_resolved = '363673599'
   AND match_confidence >= 0.90
 GROUP BY funder_name
@@ -223,7 +233,7 @@ fixes a mapping bug without new source data bumps the patch.
 ```
 https://data.opengrants.io/funder-graph/2026.08.0/grants/filing_year=2024/part-0000.parquet
 https://data.opengrants.io/funder-graph/2026.08.0/manifest.json
-https://data.opengrants.io/funder-graph/latest/        -> alias, moves every month
+https://data.opengrants.io/funder-graph/latest/        -> a copy of the current version, moves every month
 ```
 
 Use `latest` for exploration. **Pin an explicit version for anything you will be asked to
