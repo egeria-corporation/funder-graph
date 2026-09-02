@@ -5,9 +5,11 @@ over the corpus, and the first of them is the milestone's exit criterion:
 
 * ``version-coverage.csv`` — every ``returnVersion`` in the corpus, how many grant-bearing
   filings carry it, how many of those have a non-empty grant group, and for each required
-  logical field, how many of *those* resolved it. The headline number is the share of
-  filings-with-rows for which every required field resolved. If it is below ~95% by volume,
-  the build prompt says stop and ask; the number is printed before anything else is built.
+  logical field, how many of *those* resolved it. The headline number - the gate - is the
+  share of filings-with-rows for which every *required* field (a name, an amount) resolved.
+  Beside it, ``all_common_fields_pct`` is the share carrying purpose, EIN and city too: data
+  completeness, published, not gated. If the gate is below ~95% by volume, the build prompt
+  says stop and ask; the number is printed before anything else is built.
 * ``xpath-version-count.csv`` — for every element path under the grant subtrees, the schema
   versions it appears in and the count of filings carrying it. This is the 990-PF
   counterpart to the Nonprofit Open Data Collective's ``draft-updates/XPATH-VERSION-COUNT.CSV``,
@@ -45,10 +47,22 @@ from funder_graph.concordance import (
 from funder_graph.extract import parse_xml
 from funder_graph.pipeline.extract import iter_filings
 
-# The fields a row cannot be published without. Optional leaves (address line 2, relationship,
-# foundation status, non-cash) are inventoried but do not count against coverage.
-REQUIRED_PF = ("amount", "purpose", "recipient_name_line1", "recipient_person_name", "city")
-REQUIRED_SCHED_I = ("cash_amount", "purpose", "recipient_name_line1", "recipient_ein", "city")
+# The fields a row cannot be published without: a recipient name and an amount. Everything else
+# a row carries - purpose, the reported EIN, the address - is tallied and published as *field
+# presence* but does not count against coverage, because its absence is the filer's, not the
+# concordance's. On the 2023 posting 15% of Schedule I filers report no recipient EIN on any
+# grantee and 10% give no purpose text, while the same XPaths resolve for the other 85% and
+# 90% - which is the proof the mapping is right. The first version of this gate required
+# them, read 93.36%, and stopped the build on data completeness. That number survives as the
+# ``all_common_fields_pct`` column so nobody has to take this comment's word for it.
+REQUIRED_PF = ("amount", "recipient_name_line1", "recipient_person_name")
+REQUIRED_SCHED_I = ("cash_amount", "noncash_amount", "recipient_name_line1")
+# Tallied for the presence columns; absent from the gate.
+PRESENCE_PF = ("purpose", "city", "state", "zip")
+PRESENCE_SCHED_I = ("purpose", "recipient_ein", "city", "state")
+# The strict set a filing needs for ``all_common_fields``: the original gate's fields.
+STRICT_PF = ("amount", "purpose", "recipient_name_line1", "recipient_person_name", "city")
+STRICT_SCHED_I = ("cash_amount", "purpose", "recipient_name_line1", "recipient_ein", "city")
 
 # Subtrees whose element paths are inventoried and diffed. Root-relative, as the concordance
 # writes them. These must not contain one another: SupplementaryInformationGrp already
@@ -69,6 +83,7 @@ class VersionStats:
     with_rows: int = 0
     field_hits: Counter = field(default_factory=Counter)
     fully_resolved: int = 0
+    all_common_fields: int = 0  # the strict set, for the presence headline
 
 
 @dataclass
@@ -88,6 +103,7 @@ class Tally:
             mine.with_rows += s.with_rows
             mine.field_hits.update(s.field_hits)
             mine.fully_resolved += s.fully_resolved
+            mine.all_common_fields += s.all_common_fields
         for xpath, counter in other.inventory.items():
             self.inventory[xpath].update(counter)
         self.parse_errors.update(other.parse_errors)
@@ -140,14 +156,16 @@ def tally_filing(data: bytes, object_id: str) -> tuple[Tally, str | None]:
         groups = root.findall(PF_PAID_GROUP.removeprefix("/Return/")) + root.findall(
             PF_FUTURE_GROUP.removeprefix("/Return/")
         )
-        fields = {**{k: xp.pf_paid[k] for k in REQUIRED_PF}}
-        future_fields = {k: xp.pf_future[k] for k in REQUIRED_PF}
-        required = REQUIRED_PF
+        tallied = (*REQUIRED_PF, *PRESENCE_PF)
+        fields = {k: xp.pf_paid[k] for k in tallied}
+        future_fields = {k: xp.pf_future[k] for k in tallied}
+        required, strict = REQUIRED_PF, STRICT_PF
     else:
         groups = root.findall(SCHED_I_TABLE.removeprefix("/Return/"))
-        fields = {k: xp.sched_i[k] for k in REQUIRED_SCHED_I}
+        tallied = (*REQUIRED_SCHED_I, *PRESENCE_SCHED_I)
+        fields = {k: xp.sched_i[k] for k in tallied}
         future_fields = {}
-        required = REQUIRED_SCHED_I
+        required, strict = REQUIRED_SCHED_I, STRICT_SCHED_I
 
     if groups:
         stats.with_rows += 1
@@ -161,10 +179,15 @@ def tally_filing(data: bytes, object_id: str) -> tuple[Tally, str | None]:
         # an all-individuals filing legitimately has no business names, and vice versa.
         if "recipient_name_line1" in hits or "recipient_person_name" in hits:
             hits.update({"recipient_name_line1", "recipient_person_name"})
+        # Likewise an amount on Schedule I: a grant can be entirely non-cash.
+        if return_type == "990" and ("cash_amount" in hits or "noncash_amount" in hits):
+            hits.update({"cash_amount", "noncash_amount"})
         for name in hits:
             stats.field_hits[name] += 1
         if all(name in hits for name in required):
             stats.fully_resolved += 1
+        if all(name in hits for name in strict):
+            stats.all_common_fields += 1
 
     for subtree in SUBTREES:
         for path in _paths_under(root, subtree):
@@ -250,11 +273,14 @@ def write_version_coverage(t: Tally, path: Path) -> float:
                 "with_grant_rows",
                 "fully_resolved",
                 "fully_resolved_pct",
+                "all_common_fields",
+                "all_common_fields_pct",
                 *names,
             ]
         )
         for (version, rtype), s in sorted(t.versions.items()):
             pct = (100.0 * s.fully_resolved / s.with_rows) if s.with_rows else ""
+            strict_pct = (100.0 * s.all_common_fields / s.with_rows) if s.with_rows else ""
             w.writerow(
                 [
                     version,
@@ -263,11 +289,20 @@ def write_version_coverage(t: Tally, path: Path) -> float:
                     s.with_rows,
                     s.fully_resolved,
                     f"{pct:.2f}" if pct != "" else "",
+                    s.all_common_fields,
+                    f"{strict_pct:.2f}" if strict_pct != "" else "",
                     *(s.field_hits.get(n, 0) for n in names),
                 ]
             )
     with_rows = sum(s.with_rows for s in t.versions.values())
     full = sum(s.fully_resolved for s in t.versions.values())
+    return (100.0 * full / with_rows) if with_rows else 0.0
+
+
+def strict_share(t: Tally) -> float:
+    """Share of filings-with-rows carrying every commonly filled field: the presence headline."""
+    with_rows = sum(s.with_rows for s in t.versions.values())
+    full = sum(s.all_common_fields for s in t.versions.values())
     return (100.0 * full / with_rows) if with_rows else 0.0
 
 

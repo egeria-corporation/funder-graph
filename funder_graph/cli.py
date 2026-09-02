@@ -219,6 +219,7 @@ def build_map(years: str, work_dir: Path | None, workers: int | None) -> None:
 
     from funder_graph.pipeline.coverage import (
         Tally,
+        strict_share,
         tally_corpus,
         write_unmapped_fields,
         write_version_coverage,
@@ -271,6 +272,9 @@ def build_map(years: str, work_dir: Path | None, workers: int | None) -> None:
         )
     _emit("")
     _emit(f"headline: {pct:.2f}% of filings with grant rows fully resolved every required field")
+    _emit(
+        f"presence: {strict_share(total):.2f}% also carry purpose, EIN/city - published, not gated"
+    )
     _emit(
         f"reports: {reports}/version-coverage.csv, xpath-version-count.csv ({n_paths:,} paths), "
         f"unmapped-fields.csv ({n_unmapped:,} unconsumed paths)"

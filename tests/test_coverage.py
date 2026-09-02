@@ -155,3 +155,58 @@ class TestReports:
             "/Return/ReturnData/IRS990PF/SupplementaryInformationGrp/ApplicationSubmissionInfoGrp/RecipientPhoneNum"
             not in consumed
         )
+
+
+SCHED_I_2022 = b"""<Return returnVersion="2022v5.0"><ReturnHeader><ReturnTypeCd>990</ReturnTypeCd></ReturnHeader>
+<ReturnData><IRS990ScheduleI><RecipientTable>%s</RecipientTable></IRS990ScheduleI></ReturnData></Return>"""
+
+
+def _sched_i_filing(*rows: bytes) -> bytes:
+    return SCHED_I_2022 % b"".join(rows)
+
+
+class TestRequiredMeansPublishable:
+    """The gate is a name and an amount; EIN, purpose and city are presence, not coverage."""
+
+    def _stats(self, data: bytes):
+        t, err = tally_filing(data, "x")
+        assert err is None
+        return t.versions[("2022v5.0", "990")]
+
+    def test_name_and_cash_amount_alone_fully_resolve(self) -> None:
+        s = self._stats(
+            _sched_i_filing(
+                b"<RecipientBusinessName><BusinessNameLine1Txt>FEEDING AMERICA</BusinessNameLine1Txt>"
+                b"</RecipientBusinessName><CashGrantAmt>5000</CashGrantAmt>"
+            )
+        )
+        assert (s.with_rows, s.fully_resolved, s.all_common_fields) == (1, 1, 0)
+        assert s.field_hits["recipient_ein"] == 0 and s.field_hits["purpose"] == 0
+
+    def test_non_cash_only_grant_is_still_a_grant(self) -> None:
+        s = self._stats(
+            _sched_i_filing(
+                b"<RecipientBusinessName><BusinessNameLine1Txt>A FOOD BANK</BusinessNameLine1Txt>"
+                b"</RecipientBusinessName><NonCashAssistanceAmt>1200</NonCashAssistanceAmt>"
+            )
+        )
+        assert (s.fully_resolved, s.field_hits["cash_amount"], s.field_hits["noncash_amount"]) == (
+            1,
+            1,
+            1,
+        )
+
+    def test_amount_without_a_name_does_not_resolve(self) -> None:
+        s = self._stats(_sched_i_filing(b"<CashGrantAmt>5000</CashGrantAmt>"))
+        assert (s.with_rows, s.fully_resolved) == (1, 0)
+
+    def test_every_common_field_present_counts_strictly(self) -> None:
+        s = self._stats(
+            _sched_i_filing(
+                b"<RecipientBusinessName><BusinessNameLine1Txt>FEEDING AMERICA</BusinessNameLine1Txt>"
+                b"</RecipientBusinessName><RecipientEIN>363673599</RecipientEIN>"
+                b"<USAddress><CityNm>CHICAGO</CityNm></USAddress><CashGrantAmt>5000</CashGrantAmt>"
+                b"<PurposeOfGrantTxt>GENERAL SUPPORT</PurposeOfGrantTxt>"
+            )
+        )
+        assert (s.fully_resolved, s.all_common_fields) == (1, 1)
