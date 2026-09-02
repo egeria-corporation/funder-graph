@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import duckdb
+import pyarrow as pa
 
 # Every header we have seen or expect, mapped to the canonical name. Matching is
 # case-insensitive and ignores surrounding whitespace. Anything else is an error.
@@ -110,6 +111,22 @@ CREATE TABLE IF NOT EXISTS zip_members (
 """
 
 
+def _bulk_insert(conn: duckdb.DuckDBPyConnection, table: str, records: list[dict]) -> None:
+    """One INSERT ... SELECT from a registered Arrow table.
+
+    Dict key order must match the table's column order; every caller writes its dicts in
+    DDL order. ``from_pylist`` preserves that order, and DuckDB inserts positionally.
+    """
+    if not records:
+        return
+    incoming = pa.Table.from_pylist(records)
+    conn.register("incoming", incoming)
+    try:
+        conn.execute(f"INSERT INTO {table} SELECT * FROM incoming")
+    finally:
+        conn.unregister("incoming")
+
+
 @dataclass(frozen=True)
 class IndexSummary:
     filing_year: int
@@ -148,39 +165,44 @@ def load_index(conn: duckdb.DuckDBPyConnection, csv_path: Path, filing_year: int
 
     conn.execute("DELETE FROM filings_index WHERE filing_year = ?", [filing_year])
     conn.execute("DELETE FROM superseded_filings WHERE filing_year = ?", [filing_year])
+    # Bulk inserts through Arrow, not executemany. DuckDB's executemany is a row-at-a-time
+    # bind loop: on the real 2023 index it turned "load 470,000 rows" into a quarter of an
+    # hour with no output. Registering an Arrow table and INSERT ... SELECT is one statement.
     if best:
-        conn.executemany(
-            "INSERT INTO filings_index VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        _bulk_insert(
+            conn,
+            "filings_index",
             [
-                (
-                    r["object_id"],
-                    filing_year,
-                    r.get("return_id"),
-                    r["ein"],
-                    r["tax_period"],
-                    r["sub_date"],
-                    r["taxpayer_name"],
-                    r["return_type"],
-                    r.get("dln"),
-                )
+                {
+                    "object_id": r["object_id"],
+                    "filing_year": filing_year,
+                    "return_id": r.get("return_id"),
+                    "ein": r["ein"],
+                    "tax_period": r["tax_period"],
+                    "sub_date": r["sub_date"],
+                    "taxpayer_name": r["taxpayer_name"],
+                    "return_type": r["return_type"],
+                    "dln": r.get("dln"),
+                }
                 for r in best.values()
             ],
         )
     # DuckDB's executemany raises on an empty parameter list, and "nothing was superseded"
     # is the common case - it is what every test without an amended pair looked like.
     if losers:
-        conn.executemany(
-            "INSERT INTO superseded_filings VALUES (?, ?, ?, ?, ?, ?, ?)",
+        _bulk_insert(
+            conn,
+            "superseded_filings",
             [
-                (
-                    r["object_id"],
-                    filing_year,
-                    r["ein"],
-                    r["tax_period"],
-                    r["return_type"],
-                    r["sub_date"],
-                    winner,
-                )
+                {
+                    "object_id": r["object_id"],
+                    "filing_year": filing_year,
+                    "ein": r["ein"],
+                    "tax_period": r["tax_period"],
+                    "return_type": r["return_type"],
+                    "sub_date": r["sub_date"],
+                    "superseded_by": winner,
+                }
                 for r, winner in losers
             ],
         )
@@ -210,9 +232,15 @@ def register_zip(conn: duckdb.DuckDBPyConnection, zip_path: Path) -> int:
         for info in archive.infolist():
             oid = _object_id(info.filename)
             if oid:
-                rows.append((oid, zip_path.name, info.filename, info.file_size))
-    if rows:
-        conn.executemany("INSERT INTO zip_members VALUES (?, ?, ?, ?)", rows)
+                rows.append(
+                    {
+                        "object_id": oid,
+                        "zip_file": zip_path.name,
+                        "member": info.filename,
+                        "bytes": info.file_size,
+                    }
+                )
+    _bulk_insert(conn, "zip_members", rows)
     return len(rows)
 
 
