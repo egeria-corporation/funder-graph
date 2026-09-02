@@ -522,6 +522,10 @@ def build_site(
     conn.execute(
         f"CREATE VIEW grants AS SELECT * FROM read_parquet({_list(files)}, hive_partitioning = true)"
     )
+    if bmf_csv and Path(bmf_csv).is_dir():
+        # A directory means every CSV in it; a glob on the command line gets expanded by the
+        # shell on Windows before the CLI sees it.
+        bmf_csv = (Path(bmf_csv) / "*.csv").as_posix()
     if bmf_csv:
         # The IRS BMF CSVs directly (build/bmf/eo*.csv): no lock on the state file, which a
         # running pipeline stage holds. Same six columns the matcher loaded from them.
