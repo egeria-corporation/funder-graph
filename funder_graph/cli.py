@@ -555,3 +555,7 @@ def build_sample_for_labeling(n: int, seed: str, out: Path | None, work_dir: Pat
         by_tier[row["matcher_tier"]] = by_tier.get(row["matcher_tier"], 0) + 1
     shares = ", ".join(f"{t}={c}" for t, c in sorted(by_tier.items()))
     _emit(f"{len(rows):,} rows ({shares or 'none'}) -> {out}")
+
+
+if __name__ == "__main__":
+    main()
