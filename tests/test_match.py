@@ -20,6 +20,7 @@ import pytest
 
 from funder_graph.pipeline.resolve import (
     BmfMissing,
+    _by_state,
     grant_files,
     pending_recipients,
     resolve,
@@ -531,3 +532,19 @@ class TestCandidateCap:
         assert 0 < len(by_idx[0]) <= CANDIDATE_CAP
         assert all(c.sim >= 0.90 for c in by_idx[0])
         assert resolve_all(conn, [recipient])[0].tier == "U"
+
+
+class TestChunking:
+    def test_large_states_alone_and_small_groups_batched(self) -> None:
+        recipients = (
+            [rcpt(f"A {i}", state="CA") for i in range(5)]
+            + [rcpt(f"B {i}", state="TX") for i in range(4)]
+            + [rcpt("C", state="QUEENSLAND"), rcpt("D", state="RJ"), rcpt("E", state=None)]
+            + [rcpt("F", state="TG")]
+        )
+        chunks = _by_state(recipients, chunk_min=3)
+        labels = [label for label, _ in chunks]
+        assert labels[:2] == ["CA", "TX"]
+        assert all("small groups" in label for label in labels[2:])
+        assert sum(len(c) for _, c in chunks) == len(recipients)
+        assert all(len(c) >= 3 for _, c in chunks[:-1])

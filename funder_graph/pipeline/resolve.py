@@ -150,12 +150,39 @@ def pending_recipients(conn: duckdb.DuckDBPyConnection, files: list[Path]) -> li
     ]
 
 
-def _by_state(recipients: list[Recipient]) -> list[tuple[str, list[Recipient]]]:
-    """Recipients grouped by state, largest group first; no state is its own group."""
+CHUNK_MIN = 20_000
+
+
+def _by_state(
+    recipients: list[Recipient], *, chunk_min: int = CHUNK_MIN
+) -> list[tuple[str, list[Recipient]]]:
+    """Recipients grouped by state, largest first; small groups batched together.
+
+    The state field carries thousands of foreign province and city names, most with a
+    handful of tuples, and every chunk costs a full pass of the blocking query. Groups
+    under ``chunk_min`` are concatenated into batches of at least that size, labelled by
+    their count. Blocking is by the recipient's own state either way; batching only
+    changes how many tuples share one query.
+    """
     groups: dict[str, list[Recipient]] = {}
     for r in recipients:
         groups.setdefault(r.state or "", []).append(r)
-    return sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+    ordered = sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))
+    out: list[tuple[str, list[Recipient]]] = []
+    batch: list[Recipient] = []
+    batched = 0
+    for state, members in ordered:
+        if len(members) >= chunk_min:
+            out.append((state, members))
+            continue
+        batch.extend(members)
+        batched += 1
+        if len(batch) >= chunk_min:
+            out.append((f"{batched} small groups", batch))
+            batch, batched = [], 0
+    if batch:
+        out.append((f"{batched} small groups", batch))
+    return out
 
 
 def _with_aliases(recipients: list[Recipient], aliases: dict[str, str]) -> list[Recipient]:
