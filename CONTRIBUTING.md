@@ -137,11 +137,24 @@ Python 3.11+, `uv` for dependencies, `ruff` for lint and format, `pytest` for te
 and tests on every push and PR and must be green before merge.
 
 You do **not** need to run the full pipeline to contribute. A full corpus build downloads hundreds
-of gigabytes and takes many hours. For development, use the sampled corpus:
+of gigabytes and takes many hours. For development, work against the committed real filings under
+`tests/fixtures/filings/` with `funder-graph parse-filing`, and against the 49-row BMF slice under
+`tests/fixtures/bmf/`; the test suite does exactly that. One posting year is the smallest unit the
+corpus stages take today.
 
-```bash
-uv run funder-graph build --sample --years 2023 --limit-filings 500
-```
+The stages, each checkpointed in `build/state.duckdb` and safe to re-run:
+
+| Stage | What it does | Gate |
+|---|---|---|
+| `build download --years 2023` | Enumerates the IRS landing page, downloads the index and ZIPs, resumable, SHA-256 recorded | |
+| `build extract` | Loads the index, dedups on `(EIN, TAX_PERIOD, RETURN_TYPE)`, records supersedes, reconciles against the ZIP members | |
+| `build map` | The coverage matrix and the 990-PF `xpath-version-count.csv` from the filings themselves | exits 2 under 95% of volume mapped |
+| `build normalize` | Every filing to the README schema as Parquet, plus the three reconciliation reports | exits 3 under 95% of 990-PF totals reconciled |
+| `build bmf --file eo1.csv ... --vintage 2026-08` | The Business Master File into the build state, blocking keys precomputed | |
+| `build resolve` | Each distinct recipient tuple resolved once; partitions rewritten with the match columns | |
+| `build eval` | The matcher scored on `tests/fixtures/matching/labeled_pairs.csv` | exits 4 under 1,000 pairs or a missed tier target |
+
+A gate that fails is a stop-and-ask, not a threshold to lower.
 
 ### Architecture rule
 
