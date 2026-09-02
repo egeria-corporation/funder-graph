@@ -457,7 +457,14 @@ def build_resolve(years: str | None, work_dir: Path | None, re_resolve_unresolve
     wanted = parse_years(years) if years else None
     try:
         result = resolve(
-            work / "parquet", work, wanted, re_resolve_unresolved=re_resolve_unresolved
+            work / "parquet",
+            work,
+            wanted,
+            re_resolve_unresolved=re_resolve_unresolved,
+            on_chunk=lambda state, n, tiers: _emit(
+                f"  {state or '(no state)'}: {n:,} tuples -> "
+                + ", ".join(f"{k}={v:,}" for k, v in sorted(tiers.items()))
+            ),
         )
     except BmfMissing as exc:
         _emit(f"STOP: {exc}")

@@ -16,6 +16,7 @@ resolved: individuals are tagged, not matched.
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -99,7 +100,7 @@ class BmfMissing(RuntimeError):
 class ResolveResult:
     bmf_vintage: str
     tuples_pending: int
-    tuples_resolved: int
+    tuples_resolved: int = 0
     tier_counts: dict[str, int] = field(default_factory=dict)
     files_rewritten: int = 0
     rows_rewritten: int = 0
@@ -147,6 +148,14 @@ def pending_recipients(conn: duckdb.DuckDBPyConnection, files: list[Path]) -> li
         )
         for name_normalized, name_raw, city, state, zip5, ein_reported, recipient_type in rows
     ]
+
+
+def _by_state(recipients: list[Recipient]) -> list[tuple[str, list[Recipient]]]:
+    """Recipients grouped by state, largest group first; no state is its own group."""
+    groups: dict[str, list[Recipient]] = {}
+    for r in recipients:
+        groups.setdefault(r.state or "", []).append(r)
+    return sorted(groups.items(), key=lambda kv: (-len(kv[1]), kv[0]))
 
 
 def _with_aliases(recipients: list[Recipient], aliases: dict[str, str]) -> list[Recipient]:
@@ -241,6 +250,7 @@ def resolve(
     re_resolve_unresolved: bool = False,
     overrides_dir: Path = OVERRIDES_DIR,
     now: datetime | None = None,
+    on_chunk: Callable[[str, int, dict[str, int]], None] | None = None,
 ) -> ResolveResult:
     """Resolve the pending tuples for ``years`` and rewrite their partitions."""
     now = now or datetime.now(UTC)
@@ -259,14 +269,20 @@ def resolve(
             pending_recipients(conn, files), load_aliases(overrides_dir / "name-aliases.csv")
         )
         corrections = load_corrections(overrides_dir / "ein-corrections.csv")
-        resolutions = resolve_all(conn, recipients, corrections=corrections)
-        store_resolutions(conn, recipients, resolutions, vintage=vintage, resolved_at=now)
-
-        result = ResolveResult(
-            bmf_vintage=vintage, tuples_pending=len(recipients), tuples_resolved=len(resolutions)
-        )
-        for s in resolutions:
-            result.tier_counts[s.tier] = result.tier_counts.get(s.tier, 0) + 1
+        result = ResolveResult(bmf_vintage=vintage, tuples_pending=len(recipients))
+        # One chunk per recipient state, stored as it finishes. Memory is bounded by the largest
+        # state instead of the corpus, and a run that dies resumes from the stored chunks: the
+        # ANTI JOIN in pending_recipients is the checkpoint.
+        for state, chunk in _by_state(recipients):
+            resolutions = resolve_all(conn, chunk, corrections=corrections)
+            store_resolutions(conn, chunk, resolutions, vintage=vintage, resolved_at=now)
+            result.tuples_resolved += len(resolutions)
+            tiers: dict[str, int] = {}
+            for s in resolutions:
+                tiers[s.tier] = tiers.get(s.tier, 0) + 1
+                result.tier_counts[s.tier] = result.tier_counts.get(s.tier, 0) + 1
+            if on_chunk is not None:
+                on_chunk(state, len(chunk), tiers)
         for path in files:
             result.rows_rewritten += rewrite_file(conn, path)
             result.files_rewritten += 1

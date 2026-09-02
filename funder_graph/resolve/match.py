@@ -56,6 +56,13 @@ AMBIGUITY_MARGIN = 0.03
 # offered even as a guess. The blocking query prefilters at it.
 JW_STRONG = 0.94
 JW_PROBABLE = 0.90
+# Candidates kept per recipient after the prefilter, best name similarity first. Chapter-style
+# names ("AMERICAN LEGION POST ...", "ROTARY CLUB OF ...", PTAs) clear 0.90 against hundreds of
+# BMF rows in a state; the first full run materialized every one of them for 1.74 million
+# tuples and reached 10 GB before scoring anything. The scorer's geographic bonuses total at
+# most 0.09, so a candidate outside the top fifty by name could overtake the best only when
+# fifty others sit within 0.09 of it - which is exactly the ambiguity the tier rules refuse.
+CANDIDATE_CAP = 50
 
 # Within-band adjustments. Agreement is strong positive evidence; disagreement is weak negative
 # evidence and only ever moves confidence within a band.
@@ -365,7 +372,11 @@ def _block_sql() -> str:
         f"SELECT r.idx, {_CANDIDATE_COLUMNS}, {_SIM} AS sim FROM rcpt r JOIN bmf b ON {on}"
         for on in _BLOCKS
     )
-    return f"SELECT * FROM ({unions}) WHERE sim >= {JW_PROBABLE} ORDER BY idx, ein"
+    return (
+        f"SELECT * FROM ({unions}) WHERE sim >= {JW_PROBABLE} "
+        f"QUALIFY row_number() OVER (PARTITION BY idx ORDER BY sim DESC, ein) <= {CANDIDATE_CAP} "
+        "ORDER BY idx, ein"
+    )
 
 
 def recipients_table(recipients: list[Recipient]) -> pa.Table:
