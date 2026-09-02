@@ -200,3 +200,87 @@ def build_extract(years: str, work_dir: Path | None) -> None:
             )
     finally:
         conn.close()
+
+
+COVERAGE_GATE_PCT = 95.0
+
+
+@build.command("map")
+@click.option("--years", default="2019-2026", show_default=True)
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+@click.option("--workers", type=int, default=None, help="Processes; default is the CPU count.")
+def build_map(years: str, work_dir: Path | None, workers: int | None) -> None:
+    """Measure concordance coverage across every schema version in the corpus.
+
+    Writes version-coverage.csv, xpath-version-count.csv and unmapped-fields.csv under
+    build/reports/, prints the headline coverage, and refuses to proceed below 95%.
+    """
+    import duckdb
+
+    from funder_graph.pipeline.coverage import (
+        Tally,
+        tally_corpus,
+        write_unmapped_fields,
+        write_version_coverage,
+        write_xpath_version_count,
+    )
+    from funder_graph.pipeline.download import parse_years
+    from funder_graph.pipeline.extract import wanted_object_ids
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    reports = work / "reports"
+    conn = duckdb.connect(str(work / "state.duckdb"), read_only=True)
+    try:
+        total = Tally()
+        all_errors: list[str] = []
+        for year in parse_years(years):
+            wanted = wanted_object_ids(conn, year)
+            archives = sorted((work / "raw" / str(year)).glob("*.zip"))
+            if not wanted or not archives:
+                _emit(
+                    f"{year}: nothing indexed or no archives; run `build download` and `build extract` first"
+                )
+                continue
+            _emit(
+                f"{year}: {len(wanted):,} grant-bearing filings across {len(archives)} archives ..."
+            )
+            t, errors = tally_corpus(archives, wanted, workers=workers)
+            total.merge(t)
+            all_errors += errors
+            _emit(f"      {t.filings_seen:,} filings read, {len(errors)} unparseable")
+    finally:
+        conn.close()
+
+    if not total.versions:
+        sys.exit(1)
+
+    pct = write_version_coverage(total, reports / "version-coverage.csv")
+    n_paths = write_xpath_version_count(total, reports / "xpath-version-count.csv")
+    n_unmapped = write_unmapped_fields(total, reports / "unmapped-fields.csv")
+    if all_errors:
+        (reports / "unparseable-filings.txt").write_text(
+            "\n".join(all_errors) + "\n", encoding="utf-8"
+        )
+
+    _emit("")
+    _emit(f"{'version':12} {'form':6} {'filings':>9} {'with rows':>10} {'resolved':>9}  pct")
+    for (version, rtype), s in sorted(total.versions.items()):
+        share = f"{100.0 * s.fully_resolved / s.with_rows:6.2f}%" if s.with_rows else "     -"
+        _emit(
+            f"{version:12} {rtype:6} {s.filings:>9,} {s.with_rows:>10,} {s.fully_resolved:>9,}  {share}"
+        )
+    _emit("")
+    _emit(f"headline: {pct:.2f}% of filings with grant rows fully resolved every required field")
+    _emit(
+        f"reports: {reports}/version-coverage.csv, xpath-version-count.csv ({n_paths:,} paths), "
+        f"unmapped-fields.csv ({n_unmapped:,} unconsumed paths)"
+    )
+    if pct < COVERAGE_GATE_PCT:
+        _emit("")
+        _emit(
+            f"STOP: coverage is below {COVERAGE_GATE_PCT:.0f}% by volume. Per the build spec this is a"
+        )
+        _emit(
+            "strategy decision, not an engineering one: report the number before writing more code."
+        )
+        sys.exit(2)
