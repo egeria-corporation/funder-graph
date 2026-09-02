@@ -37,11 +37,8 @@ from pathlib import Path
 from lxml import etree
 
 from funder_graph.concordance import (
-    PF_FUTURE_FIELDS,
     PF_FUTURE_GROUP,
-    PF_PAID_FIELDS,
     PF_PAID_GROUP,
-    SCHED_I_FIELDS,
     SCHED_I_TABLE,
     resolved,
 )
@@ -54,10 +51,11 @@ REQUIRED_PF = ("amount", "purpose", "recipient_name_line1", "recipient_person_na
 REQUIRED_SCHED_I = ("cash_amount", "purpose", "recipient_name_line1", "recipient_ein", "city")
 
 # Subtrees whose element paths are inventoried and diffed. Root-relative, as the concordance
-# writes them.
+# writes them. These must not contain one another: SupplementaryInformationGrp already
+# holds both Part XV grant groups, and listing a group alongside its parent walks it twice
+# and doubles every count under it - which is how the first run reported 14 filings for a
+# path that 7 fixtures carry.
 SUBTREES = (
-    PF_PAID_GROUP,
-    PF_FUTURE_GROUP,
     SCHED_I_TABLE,
     "/Return/ReturnData/IRS990PF/SupplementaryInformationGrp",
 )
@@ -124,7 +122,7 @@ def tally_filing(data: bytes, object_id: str) -> tuple[Tally, str | None]:
     t = Tally()
     try:
         root = parse_xml(data)
-    except Exception as error:  # noqa: BLE001 - a corrupt member must be counted, not fatal
+    except Exception as error:
         t.parse_errors[type(error).__name__] += 1
         return t, f"{object_id}: {error}"
 

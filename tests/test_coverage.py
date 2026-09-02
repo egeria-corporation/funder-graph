@@ -61,7 +61,8 @@ class TestTally:
     def test_every_fixture_version_is_counted(self, tally: Tally) -> None:
         versions = {v for v, _ in tally.versions}
         assert versions == {"2020v4.0", "2021v4.0", "2021v4.2", "2022v5.0"}
-        assert tally.filings_seen == 7
+        # Eight committed filings: five at 2022v5.0, one each at 2020v4.0, 2021v4.0, 2021v4.2.
+        assert tally.filings_seen == 8
 
     def test_pf_2022v5_counts_filings_and_filings_with_rows(self, tally: Tally) -> None:
         s = tally.versions[("2022v5.0", "990PF")]
