@@ -21,6 +21,9 @@ All notable changes to `funder-graph` are documented here. This project follows 
 - Repository scaffolding: documentation, research dossier, and build prompts.
 
 ### Changed
+- Published schema: added `match_method` (VARCHAR, nullable) after `match_tier`. The build
+  spec's table carried it and entity resolution needs it to be auditable; the README's table
+  had lagged. A test now parses the README table and asserts it equals the writer's columns.
 - `docs/research/data-sources.md`: corrected against the real files. The IRS year directory
   listing returns 404 (enumerate the landing page instead); `SUB_DATE` is year-only in the 2023
   index; there is no per-filing URL anywhere; 990-PF lives in a separate concordance file; the

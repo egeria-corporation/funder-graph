@@ -125,6 +125,19 @@ class TestForm990PF:
         assert types["COMFORT CASES"] == "individual"
         assert sum(t == "individual" for t in types.values()) >= 6
 
+    def test_places_in_the_person_slot_are_organizations(self) -> None:
+        # A 2020v4.0 filer wrote "Community Food Pantry" and "Kappa Alpha Theta" into
+        # RecipientPersonNm. PANTRY is a token; a Greek-letter society name is not, and
+        # inventing a rule for it would be guessing. One is fixed, one is the recorded limit.
+        result = load(OLDER)
+        types = {
+            r.recipient_person_name: r.recipient_type
+            for r in result.rows
+            if r.recipient_person_name
+        }
+        assert types["Community Food Pantry"] == "organization"
+        assert types["Kappa Alpha Theta"] == "individual"
+
     def test_foreign_address_sets_country_and_has_no_us_state(self) -> None:
         result = load(FOREIGN)
         assert len(result.rows) == 1

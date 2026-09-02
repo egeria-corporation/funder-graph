@@ -74,7 +74,12 @@ _ORG_TOKENS = re.compile(
     # The chapter organizations the build spec names as the highest-risk matches. A filer
     # who writes "YWCA OF GREATER AUSTIN" in the person slot did not fund a person.
     r"YMCA|YWCA|UNITED WAY|GOODWILL|HABITAT|ROTARY|KIWANIS|LIONS|ELKS|SCOUTS|"
-    r"SALVATION ARMY|RED CROSS|BOYS|GIRLS)\b",
+    r"SALVATION ARMY|RED CROSS|BOYS|GIRLS|"
+    # Found in a 2020v4.0 filing: "Community Food Pantry" in the person slot. Places, not
+    # people. A Greek-letter society in the same filing ("Kappa Alpha Theta") has no
+    # generic token and stays the recorded limit of a name-only rule.
+    r"PANTRY|FOOD BANK|KITCHEN|SHELTER|MISSION|CHAPEL|TEMPLE|SYNAGOGUE|MOSQUE|"
+    r"FRATERNITY|SORORITY|CHAPTER|LODGE|GUILD|TROOP|CHOIR|BAND|ORCHESTRA)\b",
     re.I,
 )
 

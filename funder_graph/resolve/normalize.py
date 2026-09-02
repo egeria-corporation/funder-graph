@@ -50,7 +50,7 @@ def normalize_name(raw: str | None) -> str:
     # Apostrophes are deleted, not spaced: "CHILDREN'S" must become CHILDRENS, the form
     # filers write when they drop the punctuation, not "CHILDREN S". Every other mark
     # (hyphen, slash, period, comma) becomes a space so "FEEDING-AMERICA" splits.
-    s = s.replace("'", "").replace("’", "").replace("‘", "")
+    s = s.replace("'", "").replace("\u2019", "").replace("\u2018", "")
     s = _NON_ALNUM.sub(" ", s)
     s = _SPACES.sub(" ", s).strip()
     tokens = s.split(" ") if s else []

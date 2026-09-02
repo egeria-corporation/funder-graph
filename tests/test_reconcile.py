@@ -131,7 +131,7 @@ class TestWriteReports:
         assert s.pf_missing_detail == 1
         assert s.sched_i_exact_share == 100.0
 
-        for name, n in s.rows.items():
+        for name in s.rows:
             path = tmp_path / name
             assert path.exists(), name
             header = path.read_text(encoding="utf-8").splitlines()[0]

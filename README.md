@@ -168,6 +168,7 @@ by `filing_year` and sorted within each partition by `funder_ein`.
 | `recipient_ein_source` | `VARCHAR` | no | How we got it: `reported_verified`, `reported_unverified`, `bmf_deterministic`, `bmf_strong`, `bmf_probable`, `unresolved`. |
 | `match_confidence` | `DOUBLE` | yes | 0.0–1.0. Null when `recipient_ein_resolved` is null. See the confidence table below. |
 | `match_tier` | `VARCHAR(1)` | no | `A`, `B`, `C`, `D`, or `U`. Coarse bucket for the confidence score, for when you want to filter without thinking about float thresholds. |
+| `match_method` | `VARCHAR` | yes | Short machine-readable name of the rule that produced the match, e.g. `name_zip5_state_unique`. Null when unresolved. Lets you audit *why* a row matched, not just how confidently. |
 | `recipient_address_line1` | `VARCHAR` | yes | As filed. |
 | `recipient_city` | `VARCHAR` | yes | As filed. |
 | `recipient_state` | `VARCHAR(2)` | yes | As filed. `recipient_country` is set for foreign recipients. |

@@ -284,3 +284,108 @@ def build_map(years: str, work_dir: Path | None, workers: int | None) -> None:
             "strategy decision, not an engineering one: report the number before writing more code."
         )
         sys.exit(2)
+
+
+RECONCILIATION_GATE_PCT = 95.0
+
+
+@build.command("normalize")
+@click.option("--years", default="2019-2026", show_default=True)
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+@click.option("--workers", type=int, default=None, help="Processes; default is the CPU count.")
+@click.option(
+    "--dataset-version",
+    default=None,
+    help="YYYY.MM.PATCH stamped into every row. Defaults to this month's .0",
+)
+def build_normalize(
+    years: str, work_dir: Path | None, workers: int | None, dataset_version: str | None
+) -> None:
+    """Parse every indexed filing to the published schema and write the edge list as Parquet.
+
+    Also writes the three reconciliation reports and refuses to proceed if fewer than 95% of
+    990-PF filings with a stated total reconcile within 1% - the milestone-3 gate.
+    """
+    from datetime import UTC, datetime
+
+    import duckdb
+
+    from funder_graph.pipeline.download import parse_years
+    from funder_graph.pipeline.extract import wanted_object_ids
+    from funder_graph.pipeline.normalize import index_sub_dates, normalize_year
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    version = dataset_version or datetime.now(UTC).strftime("%Y.%m.0")
+    commit = load().commit
+    out_dir, reports = work / "parquet", work / "reports"
+
+    conn = duckdb.connect(str(work / "state.duckdb"), read_only=True)
+    try:
+        per_year = []
+        for year in parse_years(years):
+            wanted = wanted_object_ids(conn, year)
+            sub_dates = index_sub_dates(conn, year)
+            archives = sorted((work / "raw" / str(year)).glob("*.zip"))
+            if not wanted or not archives:
+                _emit(f"{year}: nothing indexed or no archives; run download and extract first")
+                continue
+            _emit(f"{year}: {len(wanted):,} filings across {len(archives)} archives -> {out_dir}")
+            per_year.append(
+                normalize_year(
+                    archives,
+                    wanted,
+                    sub_dates,
+                    year,
+                    out_dir,
+                    reports,
+                    concordance_version=commit,
+                    dataset_version=version,
+                    workers=workers,
+                )
+            )
+    finally:
+        conn.close()
+
+    if not per_year:
+        sys.exit(1)
+
+    worst: float | None = None
+    for y in per_year:
+        s = y.summary
+        counts = y.table_counts()
+        share = s.pf_within_share
+        if share is not None and (worst is None or share < worst):
+            worst = share
+        _emit("")
+        _emit(f"{y.filing_year}: {y.filings:,} filings parsed, {y.rows:,} rows written")
+        _emit(
+            f"      grants: {counts.get('grants', 0):,}   "
+            f"grants_individuals: {counts.get('grants_individuals', 0):,}"
+        )
+        if share is None:
+            _emit("      990-PF totals: no filings stated a total")
+        else:
+            _emit(
+                f"      990-PF totals: {s.pf_within_tolerance:,} of {s.pf_with_total:,} with a "
+                f"stated total reconcile within 1% ({share:.2f}%); {s.pf_no_total:,} stated no "
+                f"total; {s.pf_missing_detail:,} missing detail"
+            )
+        if s.sched_i_exact_share is not None:
+            _emit(
+                f"      Schedule I counts: {s.sched_i_exact:,} of {s.sched_i_with_count:,} exact "
+                f"({s.sched_i_exact_share:.2f}%)"
+            )
+        if y.errors:
+            path = reports / f"normalize-errors-{y.filing_year}.txt"
+            path.write_text("\n".join(y.errors) + "\n", encoding="utf-8")
+            _emit(f"      {len(y.errors):,} row/filing errors -> {path.name}")
+
+    _emit("")
+    _emit(f"dataset_version {version}, concordance {commit[:12]}; reports in {reports}")
+    if worst is not None and worst < RECONCILIATION_GATE_PCT:
+        _emit("")
+        _emit(
+            f"STOP: 990-PF reconciliation is below {RECONCILIATION_GATE_PCT:.0f}%. The parsed edges "
+            "do not reproduce the filers' own totals; that is a parsing bug with a built-in detector."
+        )
+        sys.exit(3)

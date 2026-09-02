@@ -182,34 +182,45 @@ def _write(path: Path, rows: Iterable[object], columns: list[str]) -> int:
 
 def write_reports(extractions: Iterable[Extraction], reports_dir: Path) -> Summary:
     """All three reports from one pass over the extractions. Returns the summary."""
-    s = Summary()
     pf_rows: list[PfTotalRow] = []
     si_rows: list[SchedICountRow] = []
     md_rows: list[MissingDetailRow] = []
-
     for e in extractions:
         if e.filing.return_type == "990PF":
-            s.pf_filings += 1
-            r = pf_total(e)
-            pf_rows.append(r)
-            if r.status in ("within_tolerance", "over_tolerance"):
-                s.pf_with_total += 1
-                if r.status == "within_tolerance":
-                    s.pf_within_tolerance += 1
-            elif r.status == "no_total":
-                s.pf_no_total += 1
+            pf_rows.append(pf_total(e))
             m = missing_detail(e)
             if m:
                 md_rows.append(m)
-                s.pf_missing_detail += 1
         elif e.filing.return_type == "990":
-            s.sched_i_filings += 1
-            r = sched_i_count(e)
-            si_rows.append(r)
-            if r.status != "no_count":
-                s.sched_i_with_count += 1
-                if r.status == "exact":
-                    s.sched_i_exact += 1
+            si_rows.append(sched_i_count(e))
+    return write_report_rows(pf_rows, si_rows, md_rows, reports_dir)
+
+
+def write_report_rows(
+    pf_rows: list[PfTotalRow],
+    si_rows: list[SchedICountRow],
+    md_rows: list[MissingDetailRow],
+    reports_dir: Path,
+) -> Summary:
+    """The reports from pre-computed rows. This is what the parallel stage calls: workers
+    compute rows for their own archive and only these small records cross the process
+    boundary, never the extractions themselves."""
+    s = Summary()
+    for r in pf_rows:
+        s.pf_filings += 1
+        if r.status in ("within_tolerance", "over_tolerance"):
+            s.pf_with_total += 1
+            if r.status == "within_tolerance":
+                s.pf_within_tolerance += 1
+        elif r.status == "no_total":
+            s.pf_no_total += 1
+    s.pf_missing_detail = len(md_rows)
+    for r in si_rows:
+        s.sched_i_filings += 1
+        if r.status != "no_count":
+            s.sched_i_with_count += 1
+            if r.status == "exact":
+                s.sched_i_exact += 1
 
     s.rows["pf-total-reconciliation.csv"] = _write(
         reports_dir / "pf-total-reconciliation.csv",
