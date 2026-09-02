@@ -76,6 +76,38 @@ class R2Config:
         return cls(endpoint, key, secret)
 
 
+def load_env_file(path: Path) -> dict[str, str]:
+    """KEY=VALUE lines from a file kept outside the repo, for the three R2 variables.
+
+    Blank lines and ``#`` comments are ignored, a leading ``export`` is tolerated, quotes
+    around a value are stripped. The values are returned, not exported: the process
+    environment is never modified and nothing is printed.
+    """
+    if not path.exists():
+        raise MissingCredentials(f"env file {path} does not exist")
+    out: dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        if line.startswith("export "):
+            line = line[len("export ") :]
+        key, value = line.split("=", 1)
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        out[key.strip()] = value
+    return out
+
+
+def credentials(env_file: Path | None) -> R2Config:
+    """The environment, with an env file's values on top when one is given."""
+    merged: dict[str, str] = dict(os.environ)
+    if env_file is not None:
+        merged.update(load_env_file(env_file))
+    return R2Config.from_env(merged)
+
+
 class S3Client(Protocol):
     """The two calls this module makes, so a test can stand in for boto3."""
 
