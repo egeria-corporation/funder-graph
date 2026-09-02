@@ -222,3 +222,52 @@ class TestStreaming:
         assert b"BRODERICK CHARITABLE FOUNDATION TRUST" in got[BRODERICK]
         # Nothing was written to disk beyond the archive itself.
         assert sorted(p.name for p in tmp_path.iterdir()) == ["index_2023.csv", "z.zip"]
+
+
+class TestOlderPostingReturnTypes:
+    """2019-2020 indexes mark a 990 with Schedule O as 990O and a 990-PF as 990PR."""
+
+    def test_990o_and_990pr_are_kept_and_990eo_is_not(self, tmp_path, conn):
+        from funder_graph.pipeline.extract import GRANT_RETURN_TYPES, load_index
+
+        csv = tmp_path / "index_2019.csv"
+        rows = [
+            "RETURN_ID,FILING_TYPE,EIN,TAX_PERIOD,SUB_DATE,TAXPAYER_NAME,RETURN_TYPE,DLN,OBJECT_ID",
+            "1,EFILE,100000001,201812,2019-05-01,A,990O,1,201900000000000001",
+            "2,EFILE,100000002,201812,2019-05-01,B,990EO,2,201900000000000002",
+            "3,EFILE,100000003,201812,2019-05-01,C,990PF,3,201900000000000003",
+            "4,EFILE,100000004,201812,2019-05-01,D,990PR,4,201900000000000004",
+            "5,EFILE,100000005,201812,2019-05-01,E,990EZ,5,201900000000000005",
+        ]
+        csv.write_text("\n".join(rows) + "\n", encoding="utf-8")
+        assert {"990", "990O", "990PF", "990PR"} <= set(GRANT_RETURN_TYPES)
+        assert "990EO" not in GRANT_RETURN_TYPES and "990EZ" not in GRANT_RETURN_TYPES
+        summary = load_index(conn, csv, 2019)
+        kept = {r[0] for r in conn.execute("SELECT object_id FROM filings_index").fetchall()}
+        assert kept == {"201900000000000001", "201900000000000003", "201900000000000004"}
+        assert summary.kept == 3
+
+
+class TestDeflate64:
+    def test_inflate64_round_trips_what_the_deflater_wrote(self):
+        import inflate64 as lib
+
+        from funder_graph.pipeline.extract import inflate64
+
+        original = b'<Return returnVersion="2019v5.0">' + b"x" * 100_000 + b"</Return>"
+        deflater = lib.Deflater()
+        compressed = deflater.deflate(original) + deflater.flush()
+        assert len(compressed) < len(original)
+        assert inflate64(compressed) == original
+
+    def test_read_member_serves_ordinary_deflate_members_unchanged(self, tmp_path):
+        import zipfile
+
+        from funder_graph.pipeline.extract import read_member
+
+        zp = tmp_path / "a.zip"
+        with zipfile.ZipFile(zp, "w", zipfile.ZIP_DEFLATED) as z:
+            z.writestr("2019/201900000000000001_public.xml", "<Return/>")
+        with zipfile.ZipFile(zp) as z:
+            info = z.getinfo("2019/201900000000000001_public.xml")
+            assert read_member(z, info) == b"<Return/>"

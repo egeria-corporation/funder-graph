@@ -36,6 +36,7 @@ dependencies = [
   "grantcheck>=0.1.0",
   "httpx>=0.27",
   # Metaphone for the phonetic blocking key; Jaro-Winkler is DuckDB's own. See D-007.
+  "inflate64>=1.0.4",
   "jellyfish>=1.2",
   "lxml>=5.3",
   "pyarrow>=17",

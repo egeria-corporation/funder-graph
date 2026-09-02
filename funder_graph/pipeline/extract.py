@@ -52,7 +52,10 @@ _HEADER_ALIASES: dict[str, str] = {
 REQUIRED = {"ein", "tax_period", "sub_date", "taxpayer_name", "return_type", "object_id"}
 
 # Only these carry grant edges. 990-EZ and 990-T do not; 990-N has no schedules at all.
-GRANT_RETURN_TYPES = ("990", "990PF")
+# The index marks a Form 990 with Schedule O attached as "990O" (2019-2020 postings) and
+# a 990-PF as "990PR" in 2020; the XML ReturnTypeCd is plain 990 / 990PF, which is what
+# the published funder_form_type carries. 990EO is a 990-EZ and has no grant edges.
+GRANT_RETURN_TYPES = ("990", "990O", "990PF", "990PR")
 
 
 class IndexHeaderError(ValueError):
@@ -293,6 +296,47 @@ def reconcile(conn: duckdb.DuckDBPyConnection, filing_year: int) -> Reconciliati
     return Reconciliation(filing_year, index_only, zip_only, matched)
 
 
+DEFLATE64 = 9
+_LOCAL_HEADER = 30  # fixed part of a ZIP local file header, before the name and extra fields
+
+
+def inflate64(data: bytes) -> bytes:
+    """Decompress Deflate64 (ZIP method 9) bytes. The IRS's 2020_TEOS_XML_CT1.zip uses it."""
+    import inflate64 as _inflate64
+
+    inflater = _inflate64.Inflater()
+    out = inflater.inflate(data)
+    return out
+
+
+def read_member(archive: zipfile.ZipFile, info: zipfile.ZipInfo) -> bytes:
+    """One member's bytes, including the Deflate64 method the standard library refuses.
+
+    For method 9 the raw compressed bytes are read straight from the local header offset -
+    the central directory's sizes are authoritative, and the local header's own name and
+    extra lengths say where the data starts - and inflated with ``inflate64``.
+    """
+    if info.compress_type != DEFLATE64:
+        with archive.open(info) as member:
+            return member.read()
+    fp = archive.fp
+    assert fp is not None
+    fp.seek(info.header_offset)
+    header = fp.read(_LOCAL_HEADER)
+    if header[:4] != b"PK":
+        raise zipfile.BadZipFile(f"{info.filename}: bad local header")
+    name_len = int.from_bytes(header[26:28], "little")
+    extra_len = int.from_bytes(header[28:30], "little")
+    fp.seek(info.header_offset + _LOCAL_HEADER + name_len + extra_len)
+    raw = fp.read(info.compress_size)
+    data = inflate64(raw)
+    if len(data) != info.file_size:
+        raise zipfile.BadZipFile(
+            f"{info.filename}: inflated {len(data):,} bytes, header says {info.file_size:,}"
+        )
+    return data
+
+
 def iter_filings(zip_path: Path, only: set[str] | None = None) -> Iterator[tuple[str, bytes]]:
     """Stream ``(object_id, xml_bytes)`` out of an archive without extracting it.
 
@@ -304,8 +348,7 @@ def iter_filings(zip_path: Path, only: set[str] | None = None) -> Iterator[tuple
             oid = _object_id(info.filename)
             if oid is None or (only is not None and oid not in only):
                 continue
-            with archive.open(info) as member:
-                yield oid, member.read()
+            yield oid, read_member(archive, info)
 
 
 def wanted_object_ids(conn: duckdb.DuckDBPyConnection, filing_year: int) -> set[str]:
