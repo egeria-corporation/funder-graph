@@ -1,0 +1,77 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Return xmlns="http://www.irs.gov/efile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" returnVersion="2022v5.0">
+  <ReturnHeader binaryAttachmentCnt="0">
+    <ReturnTs>2023-11-27T11:06:45-05:00</ReturnTs>
+    <TaxPeriodEndDt>2022-12-31</TaxPeriodEndDt>
+    <PreparerFirmGrp>
+      <PreparerFirmEIN>820574321</PreparerFirmEIN>
+      <PreparerFirmName>
+        <BusinessNameLine1Txt>GAMARRA &amp; ASSOCIATES LLC</BusinessNameLine1Txt>
+      </PreparerFirmName>
+      <PreparerUSAddress>
+        <AddressLine1Txt>200 S PARK ROAD STE 301</AddressLine1Txt>
+        <CityNm>HOLLYWOOD</CityNm>
+        <StateAbbreviationCd>FL</StateAbbreviationCd>
+        <ZIPCd>33021</ZIPCd>
+      </PreparerUSAddress>
+    </PreparerFirmGrp>
+    <ReturnTypeCd>990PF</ReturnTypeCd>
+    <TaxPeriodBeginDt>2022-01-01</TaxPeriodBeginDt>
+    <Filer>
+      <EIN>981599776</EIN>
+      <BusinessName>
+        <BusinessNameLine1Txt>FUNDACION EDUCACIONAL ALONSO DE</BusinessNameLine1Txt>
+        <BusinessNameLine2Txt>OVALLE</BusinessNameLine2Txt>
+      </BusinessName>
+      <BusinessNameControlTxt>FUND</BusinessNameControlTxt>
+      <PhoneNum>3056510497</PhoneNum>
+      <USAddress>
+        <AddressLine1Txt>8950 SW 74TH CT STE 1901</AddressLine1Txt>
+        <CityNm>MIAMI</CityNm>
+        <StateAbbreviationCd>FL</StateAbbreviationCd>
+        <ZIPCd>33156</ZIPCd>
+      </USAddress>
+    </Filer>
+    <BusinessOfficerGrp>
+      <PersonNm>ROBERTO SALDIAS BARRERA</PersonNm>
+      <PersonTitleTxt>PRESIDENT</PersonTitleTxt>
+      <PhoneNum>3056510497</PhoneNum>
+      <SignatureDt>2023-11-16</SignatureDt>
+      <DiscussWithPaidPreparerInd>true</DiscussWithPaidPreparerInd>
+    </BusinessOfficerGrp>
+    <SigningOfficerGrp>
+      <PersonFullName>
+        <PersonFirstNm>ROBERTO</PersonFirstNm>
+        <PersonLastNm>SALDIAS</PersonLastNm>
+      </PersonFullName>
+      <SSN>888008888</SSN>
+    </SigningOfficerGrp>
+    <IRSResponsiblePrtyInfoCurrInd>true</IRSResponsiblePrtyInfoCurrInd>
+    <PreparerPersonGrp>
+      <PreparerPersonNm>ORLANDO H GAMARRA CPA</PreparerPersonNm>
+      <PTIN>P00230318</PTIN>
+      <PhoneNum>3056510497</PhoneNum>
+      <PreparationDt>2023-11-27</PreparationDt>
+    </PreparerPersonGrp>
+    <TaxYr>2022</TaxYr>
+    <BuildTS>2023-04-26 12:10:37Z</BuildTS>
+  </ReturnHeader>
+  <ReturnData documentCnt="7">
+    <IRS990PF documentId="RetDoc9" referenceDocumentId="RetDoc8">
+      <SupplementaryInformationGrp>
+        <OnlyContriToPreselectedInd>X</OnlyContriToPreselectedInd>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>VARIOUS ORGANIZATIONS</RecipientPersonNm>
+          <RecipientForeignAddress>
+            <AddressLine1Txt>SEE ATTACHED SCHEDULE</AddressLine1Txt>
+            <AddressLine2Txt>SEE ATTACHED SCHEDULE</AddressLine2Txt>
+            <CityNm>SANTIAGO DE CHILE</CityNm>
+            <CountryCd>CI</CountryCd>
+          </RecipientForeignAddress>
+          <GrantOrContributionPurposeTxt>CHARITABLE</GrantOrContributionPurposeTxt>
+          <Amt>9758900</Amt>
+        </GrantOrContributionPdDurYrGrp>
+      </SupplementaryInformationGrp>
+      </IRS990PF>
+    </ReturnData>
+</Return>

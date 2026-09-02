@@ -1,0 +1,67 @@
+# Upstream pins. Every file under data/concordance/ is vendored at exactly this commit so a
+# build is reproducible with no network access, and the commit SHA is stamped into every
+# published row as `concordance_version`. Re-vendoring is a deliberate, reviewed change:
+# bump the SHA, replace the files, re-run the coverage matrix, and record what moved.
+
+[concordance]
+name       = "IRS E-file Master Concordance File"
+author     = "Nonprofit Open Data Collective"
+repo       = "https://github.com/Nonprofit-Open-Data-Collective/irs-efile-master-concordance-file"
+commit     = "d8266da934cd1cb5d1d9cedc5398ba107b0c7bbe"
+commit_date = "2026-08-23"
+branch     = "master"
+license    = "ODC-By-1.0"
+license_file = "data/concordance/LICENSE.md"
+# Which vendored file carries which form. The main file has no 990-PF rows at all; 990-PF
+# lives in its own file under 02-concordance-foundations/, and the Part XV slice is the
+# grant-edge subset of it. Discovering that cost a morning; hence the note.
+files.main       = "concordance.csv"              # F990 core + every schedule incl. Schedule I
+files.pf_full    = "F990-PF-FULL.CSV"             # all of Form 990-PF
+files.pf_part15  = "f990pf-part-15-v3.csv"        # 990-PF Part XV only (grants paid / approved)
+files.pf_aux     = "f990pf-aux-schedule-v2.csv"   # 990-PF PART-99 aux; carries no version data
+
+[concordance.sha256]
+"concordance.csv" = "d3cdcd216acd84509a140782c8e340b9a941d499d7325fdd9f0c98b6e3278e3f"
+"F990-PF-FULL.CSV" = "d97f0131476db14d57b19febb8bd27e6ce7458b360177c132fa50b47ddcfd95a"
+"f990pf-aux-schedule-v2.csv" = "6c963b7aed5f197c2af02b5903142e8113b502abaeef92e037ef46ccfd14b402"
+"f990pf-part-15-v3.csv" = "b9c1d56bcd1921c5b8e558c99a0f4e58136510609b1ba379b7ce969e2e8d2f1a"
+"LICENSE.md" = "11a6d83734845ad09d809667aa219857a5b985b28c258a2eebf5677668a6bd3b"
+
+# Known upstream state at this pin, so nobody re-derives it:
+#  - versions annotations for the Part XV and Schedule I subtrees stop at 2016v3.0 / 2018v3.x,
+#    while the xpaths themselves (current_version = T) match 2019-2022 filings exactly.
+#    Verified against real filings at returnVersion 2020v4.0, 2021v4.2, 2022v5.0.
+#  - 03-versions/raw-mappings/ holds per-version dumps through 2022v5.0, which is the raw
+#    material for extending those annotations. That is the upstream contribution we owe.
+
+[concordance.raw_mappings]
+# Per-schema-version XPath inventories from 03-versions/raw-mappings/, one file per
+# returnVersion, columns Version,Source,Xpath,Type,Description,Line,MinOccur,MaxOccur.
+# These are the coverage-matrix input: for each version in the corpus, every xpath the
+# schema actually contains. Upstream produced them; the concordance's `versions` column
+# was never regenerated from them past 2016. Diffing our resolved map against these is
+# the drift report, and the join is the PR we owe upstream.
+directory = "data/concordance/raw-mappings"
+
+[concordance.raw_mappings.sha256]
+"mapping_2016v3.0.csv" = "9796d12d67c4c0d2bbafc7e7e821c662793a7adba58039ac24a492726b4ea2f4"
+"mapping_2016v3.1.csv" = "c5bb1f5e076dafb8f607d1cd3da1f0526677c4da6fa66b5bd8b11d38bd294481"
+"mapping_2017v2.0.csv" = "a7444a3a54b61ce1b36f4916167a8dbdf8f36019f42de29e2beae367fccfd305"
+"mapping_2017v2.2.csv" = "cc80bee4bec2c151e1767bd80dca2d500580602fe97f67469ec1d01a739e38ff"
+"mapping_2017v2.3.csv" = "9107756eb890373bf3f919b6010e692bc327bd791bb23b574282636e773b5a16"
+"mapping_2018v3.0.csv" = "043e69255c7c9a8438453b81e6ff9b9e66f3136b297359f6a6a6a9581aba1c9f"
+"mapping_2018v3.1.csv" = "1230800955c559dc955a67217bfab591bc4c78427714371d9d008e8c785a5816"
+"mapping_2018v3.3.csv" = "550966ac0870eb1bec9d4bda6435620135e813913c886cf6271d1834b42cca9b"
+"mapping_2019v5.0.csv" = "2f7d2869214d92c8dfc4efb95ac594f980b9054a33e7ca288a93c96ad1a4c727"
+"mapping_2019v5.1.csv" = "aa6ec1fe1cc5572583833200d777a2d7bb51083d6e5aae6ac501687c3d68b083"
+"mapping_2019v5.2.csv" = "59ef301a7b6bf10f416cbf7fd703cb412315d294273c228fb09daab05fcff5c0"
+"mapping_2020v4.0.csv" = "aa2ec7cf55c0bddcd8d88d2ba788e012958f774400f6e656bd26fb7dc2021dd0"
+"mapping_2020v4.1.csv" = "d058a67b0990b4de008f0874b85783cd1e594bafc06e84e2bd996ec2325a93f0"
+"mapping_2020v4.2.csv" = "34cbfbdbb5670e25868d55dba27a1040c089261f454e022a238f49cac212044e"
+"mapping_2021v4.0.csv" = "c45096260fcdac52c5483d53bf6e584d82b1bed634d101ffccb2969c4c5f29c1"
+"mapping_2021v4.1.csv" = "899dd1e6e5e9cb4ee24cc799a9acebe27dcb8ff9059a4cab7b5f8dc005216eb0"
+"mapping_2021v4.2.csv" = "b6ec1b91654f3e01f2543d8f859a0dae07e61e82da69c3f1711af4276627f457"
+"mapping_2021v4.3.csv" = "9e8e54840cc5b50dbd3343fdbad30ff3810b36f5111657116fba28ffe3d8e2ab"
+"mapping_2022v4.0.csv" = "ab41d327f6735ea77acddd21540d00bfeb3ae4abd6653d06c7f780cae44ff74a"
+"mapping_2022v4.1.csv" = "a4fe4acd0bade00399ae960d35bb7b71868a538205488eb6dc601064db5f1150"
+"mapping_2022v5.0.csv" = "7ccc2ff94e7e1705e5347c814ab1102642bec78ebe9cc73a55851a1701e9f34f"

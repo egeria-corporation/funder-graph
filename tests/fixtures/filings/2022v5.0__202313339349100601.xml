@@ -1,0 +1,156 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Return xmlns="http://www.irs.gov/efile" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" returnVersion="2022v5.0" xsi:schemaLocation="http://www.irs.gov/efile">
+  <ReturnHeader binaryAttachmentCnt="0">
+    <ReturnTs>2023-11-29T07:07:15-08:00</ReturnTs>
+    <TaxPeriodEndDt>2023-08-31</TaxPeriodEndDt>
+    <ReturnTypeCd>990PF</ReturnTypeCd>
+    <TaxPeriodBeginDt>2022-09-01</TaxPeriodBeginDt>
+    <Filer>
+      <EIN>474714441</EIN>
+      <BusinessName>
+        <BusinessNameLine1Txt>THE OFFICE CHARITY FOUNDATION CORP</BusinessNameLine1Txt>
+      </BusinessName>
+      <BusinessNameControlTxt>OFFI</BusinessNameControlTxt>
+      <PhoneNum>2405540359</PhoneNum>
+      <USAddress>
+        <AddressLine1Txt>8204 GOODHURST DRIVE</AddressLine1Txt>
+        <CityNm>GAITHERSBURG</CityNm>
+        <StateAbbreviationCd>MD</StateAbbreviationCd>
+        <ZIPCd>20882</ZIPCd>
+      </USAddress>
+    </Filer>
+    <BusinessOfficerGrp>
+      <PersonNm>CARRIE BOHRER</PersonNm>
+      <PersonTitleTxt>Director</PersonTitleTxt>
+      <SignatureDt>2023-11-29</SignatureDt>
+    </BusinessOfficerGrp>
+    <SigningOfficerGrp>
+      <PersonFullName>
+        <PersonFirstNm>CARRIE</PersonFirstNm>
+        <PersonLastNm>BOHRER</PersonLastNm>
+      </PersonFullName>
+      <SSN>999009999</SSN>
+    </SigningOfficerGrp>
+    <IRSResponsiblePrtyInfoCurrInd>true</IRSResponsiblePrtyInfoCurrInd>
+    <AdditionalFilerInformation>
+      <TrustedCustomerGrp>
+        <TrustedCustomerCd>2</TrustedCustomerCd>
+        <AuthenticationAssuranceLevelCd>AAL1</AuthenticationAssuranceLevelCd>
+        <IdentityAssuranceLevelCd>IAL1</IdentityAssuranceLevelCd>
+        <FederatedAssuranceLevelCd>FAL1</FederatedAssuranceLevelCd>
+      </TrustedCustomerGrp>
+    </AdditionalFilerInformation>
+    <TaxYr>2022</TaxYr>
+    <BuildTS>2023-04-26 12:10:37Z</BuildTS>
+  </ReturnHeader>
+  <ReturnData documentCnt="7">
+    <IRS990PF documentId="IRS990PF" referenceDocumentId="GeneralExplanation" softwareId="22015553" softwareVersionNum="2022v5.0">
+      <SupplementaryInformationGrp>
+        <OnlyContriToPreselectedInd>X</OnlyContriToPreselectedInd>
+        <ApplicationSubmissionInfoGrp>
+          <RecipientPersonNm>CARRIE BOHRER</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>8204 GOODHURST DRIVE</AddressLine1Txt>
+            <CityNm>GAITHERSBURG</CityNm>
+            <StateAbbreviationCd>MD</StateAbbreviationCd>
+            <ZIPCd>20882</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientPhoneNum>2405540359</RecipientPhoneNum>
+          <RestrictionsOnAwardsTxt>MONTGOMERY CO., MD, HARDSHIP CASES.</RestrictionsOnAwardsTxt>
+        </ApplicationSubmissionInfoGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>COMFORT CASES</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>15825 SHADY GROVE ROAD STE 60</AddressLine1Txt>
+            <CityNm>ROCKVILLE</CityNm>
+            <StateAbbreviationCd>MD</StateAbbreviationCd>
+            <ZIPCd>20850</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>NONE</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>EOF</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>SUPPORT ORGANIZATION HELPING CHILDREN IN FOSTER CARE</GrantOrContributionPurposeTxt>
+          <Amt>1000</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>CHRISTOPHER HIPP</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>7216 PATTON DR</AddressLine1Txt>
+            <CityNm>WOODBINE</CityNm>
+            <StateAbbreviationCd>MD</StateAbbreviationCd>
+            <ZIPCd>21797</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>NONE</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>I</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>SUPPORT FAMILY WITH MEDICAL EXPENSES FOR CHILD WITH BIRTH DEFECTS</GrantOrContributionPurposeTxt>
+          <Amt>64000</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>KATHLEEN HEISTER</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>3317 PAPRIKA COURT</AddressLine1Txt>
+            <CityNm>ADAMSTOWN</CityNm>
+            <StateAbbreviationCd>MD</StateAbbreviationCd>
+            <ZIPCd>21710</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>NONE</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>I</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>SUPPORT FAMILY WITH MEDICAL/FUNERAL EXPENSES FOR SICK FAMILY MEMBER</GrantOrContributionPurposeTxt>
+          <Amt>42650</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>NATALIE MALHOTRA</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>144931 CHELSEA CIRCLE</AddressLine1Txt>
+            <CityNm>MT AIRY</CityNm>
+            <StateAbbreviationCd>MD</StateAbbreviationCd>
+            <ZIPCd>21771</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>NONE</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>I</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>SUPPORT NEEDY FAMILY WITH DEATH OF FATHER, TO COVER CHILDREN'S EDUCATION</GrantOrContributionPurposeTxt>
+          <Amt>20000</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>MODESTO GALLARDO</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>2018 COLUMBIA PIKE 7</AddressLine1Txt>
+            <CityNm>ARLINGTON</CityNm>
+            <StateAbbreviationCd>VA</StateAbbreviationCd>
+            <ZIPCd>22204</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>NONE</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>I</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>SUPPORT NEEDY FAMILY WITH SICK CHILD, TO COVER MEDICAL BILLS.</GrantOrContributionPurposeTxt>
+          <Amt>45375</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>JOSHUA GREGG</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>1 SANDY SPRING COURT 8</AddressLine1Txt>
+            <CityNm>THURMONT</CityNm>
+            <StateAbbreviationCd>MD</StateAbbreviationCd>
+            <ZIPCd>21788</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>NONE</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>I</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>SUPPORT OF NEEDY FAMILY</GrantOrContributionPurposeTxt>
+          <Amt>45375</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>HOLLY HESS</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>1132 WESTERN CHAPEL ROAD</AddressLine1Txt>
+            <CityNm>NEW WINDSOR</CityNm>
+            <StateAbbreviationCd>MD</StateAbbreviationCd>
+            <ZIPCd>21776</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>NONE</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>I</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>SUPPORT NEEDY FAMILY WITH SICK CHILD, TO COVER MEDICAL BILLS.</GrantOrContributionPurposeTxt>
+          <Amt>45375</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <TotalGrantOrContriPdDurYrAmt>263775</TotalGrantOrContriPdDurYrAmt>
+      </SupplementaryInformationGrp>
+      </IRS990PF>
+    </ReturnData>
+</Return>

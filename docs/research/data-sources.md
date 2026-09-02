@@ -28,14 +28,16 @@ silently fetch nothing for half the corpus.
 
 | Years | Pattern | Notes |
 |---|---|---|
-| 2023–2026 | `{YEAR}_TEOS_XML_##X.zip` | e.g. `2024_TEOS_XML_01A.zip`. The `##` is a sequence number and the letter distinguishes parts within a posting. |
+| 2023–2026 | `{YEAR}_TEOS_XML_##X.zip` | e.g. `2024_TEOS_XML_01A.zip`. The `##` is a sequence number and the letter distinguishes parts within a posting. **Verified 2026-09-01 for 2023:** twelve files, `01A` through `12A`, 4.09 GB in total, from 120.7 MB (`12A`) to 1.20 GB (`11A`), each with an ETag and `Last-Modified`. |
 | 2019–2020 | `download990xml_{YEAR}_#.zip` | e.g. `download990xml_2020_3.zip`. |
-| 2021–2022 | **VERIFY** — enumerate the directory listing rather than assuming. |
+| 2021–2022 | **VERIFY** — enumerate rather than assuming. |
 
-**Implementation rule:** do not hardcode file names. Fetch the year directory listing, extract
-every `.zip` href, and record the resolved URL plus its ETag or `Last-Modified` and a SHA-256 of
-the downloaded bytes in the build manifest. That record is what makes a build reproducible and what
-makes an incremental update possible.
+**Implementation rule:** do not hardcode file names, and **do not fetch the year directory
+listing** — `https://apps.irs.gov/pub/epostcard/990/xml/2023/` returns a 302 to the IRS 404 page
+(verified 2026-09-01). The enumerable source is the landing page above: extract every `.zip` and
+`.csv` href from it and filter by year. Record the resolved URL plus its ETag or `Last-Modified`
+and a SHA-256 of the downloaded bytes in the build manifest. That record is what makes a build
+reproducible and what makes an incremental update possible.
 
 ### The index CSVs
 
@@ -62,6 +64,14 @@ specific document.
 
 **Gotchas:**
 
+- **`SUB_DATE` is year-only in `index_2023.csv`** — every row reads `2023`, not a date (verified
+  2026-09-01). `filing_submission_date` therefore has year precision for that posting, and the
+  column type has to tolerate it. Check each year's index before assuming a full date.
+- **The index does not say which ZIP holds a filing.** There is no archive column. The
+  filing-to-ZIP map comes from listing each ZIP's members and joining on `OBJECT_ID`.
+- Scale for 2023: 705,156 index rows — 347,337 Form 990, 209,957 990-EZ, 124,666 990-PF,
+  23,196 990-T. `2023_TEOS_XML_12A.zip` holds 20,007 members, every one present in the index
+  (zero delta in either direction), of which 2,852 are 990-PF.
 - The index is not perfectly in sync with the ZIP contents in every posting. Reconcile both
   directions and report the delta rather than crashing.
 - An organization can appear multiple times for one tax period — amended returns, or a return filed
@@ -76,8 +86,14 @@ specific document.
 ### Historical note
 
 The AWS S3 bucket `irs-form-990` used to mirror this corpus and is widely referenced in older
-tutorials and blog posts. It was discontinued and should not be used as a source. **VERIFY** its
-current status before citing it anywhere public.
+tutorials and blog posts. It was discontinued and should not be used as a source. Verified
+2026-09-01: `https://s3.amazonaws.com/irs-form-990/{OBJECT_ID}_public.xml` returns 404.
+
+**There is no per-filing URL anywhere.** The IRS path `.../xml/2023/{OBJECT_ID}_public.xml`
+returns a 302 to the 404 page, and ProPublica's `full_text/{OBJECT_ID}` returns 404 (both
+verified 2026-09-01). A single filing can only be obtained by locating the ZIP that contains it
+and streaming that one member out — which is what `fetch-raw --object-id` does. It is a ZIP
+member read, not a download "straight from the IRS", and the ZIP it needs may be a gigabyte.
 
 ---
 
@@ -145,11 +161,32 @@ Its columns (confirm against the current release; the file has evolved):
 4. Local overrides for known gaps live in `data/overrides/concordance-overrides.toml` and every
    entry requires an upstream issue link. See `CONTRIBUTING.md`.
 
-**Reality check the agent must perform:** the concordance's coverage of 990-PF Part XV's repeating
-grant table is the thing to verify first, before writing anything else. If the concordance covers
-the Part XV group well, the pipeline is a mapping exercise. If it covers it partially, the gap is
-the project's central risk and needs to be quantified in week one, not week five. Measure it,
-publish the measurement, and file the gaps upstream.
+**Reality check, performed 2026-09-01 at commit `d8266da9`.** The answer is "mapping exercise",
+with three things to know that cost a morning to learn:
+
+1. **Form 990-PF is not in `concordance.csv`.** That file carries the core 990 and every
+   schedule (6,864 rows) and contains zero 990-PF rows. Part XV lives in
+   `02-concordance-foundations/F990-PF-FULL.CSV` (2,231 rows; 210 for Part XV, also sliced out
+   as `f990pf-part-15-v3.csv`). A loader that reads only the main file reports 0% coverage of
+   the primary edge list and looks like a strategy crisis. It is a file-layout fact.
+2. **The `versions` column is stale; the XPaths are not.** Version annotations for the Part XV
+   and Schedule I subtrees stop at `2016v3.0` and `2018v3.x`, while the XPaths flagged
+   `current_version = T` match 2019–2022 filings exactly — every required Part XV field
+   resolved on real filings at `2020v4.0`, `2021v4.2` and `2022v5.0`, and Schedule I resolved
+   12 of 17 fields on a `2021v4.2` filing with the 5 misses being optional leaves genuinely
+   absent from it. Resolution must therefore select current XPaths and **not** gate on
+   `versions`; a missing annotation is an upstream metadata gap to report, not evidence a
+   field is unmapped. Schedule I rows also carry an empty `current_version`, so "not flagged"
+   cannot mean "not current" there.
+3. **Upstream already holds the per-version truth.** `03-versions/raw-mappings/` has one XPath
+   inventory per schema version from `2016v3.0` through `2022v5.0` (columns `Version, Source,
+   Xpath, Type, Description, Line, MinOccur, MaxOccur`), each listing the 18 Part XV and 20
+   Schedule I XPaths. The `versions` column was simply never regenerated from them. That makes
+   the coverage matrix a join rather than a hand-check, and makes the upstream contribution a
+   PR that extends `versions` from their own inventories, weighted by real filing volume.
+
+All of it is vendored under `data/concordance/` with per-file SHA-256s in
+`data/upstream-pins.toml`.
 
 ---
 
@@ -206,9 +243,14 @@ concrete): `GrantOrContributionPdDurYr`, with `RecipientNameBusiness/BusinessNam
   whether the foundation accepts unsolicited applications, submission deadlines, and the person
   applications go to. **We use only the accepts-applications indicator and the deadline text. We do
   not publish the contact person.** See `docs/NON-GOALS.md`.
-- `/Return/ReturnData/IRS990PF/TotalGrantOrContriPdDurYrAmt` **VERIFY exact element name** — the
-  foundation's own stated total of grants paid. This is a free integrity check: our summed edges
-  for a filing should reconcile to it. Publish the reconciliation delta per filing in
+- `/Return/ReturnData/IRS990PF/SupplementaryInformationGrp/TotalGrantOrContriPdDurYrAmt` —
+  element name **verified 2026-09-01** (it sits inside `SupplementaryInformationGrp`, not
+  directly under `IRS990PF`; concordance variable `F9_15_PF_SUINTOGRORCO`, with
+  `TotalGrantOrContriApprvFutAmt` alongside it for the future group). The foundation's own
+  stated total of grants paid. This is a free integrity check: our summed edges for a filing
+  should reconcile to it — and on the first real filing parsed, four rows summed to 50,000
+  against a stated 50,000, delta zero. **It is optional and some filers omit it entirely**, so
+  the reconciliation report must distinguish "no total stated" from "total disagrees". Publish the reconciliation delta per filing in
   `build/reports/pf-total-reconciliation.csv`. A filing whose parsed edges do not sum to its own
   reported total is a parsing bug with a built-in detector, and this check is the highest-value
   quality control in the entire pipeline.
@@ -218,6 +260,26 @@ grants in Part XV via a statement rather than the structured group. Where the st
 empty but the foundation's stated total is large, flag it in
 `build/reports/pf-missing-detail.csv`. This is a known, real limitation and it must be measured and
 published, not hidden.
+
+**It has a second shape the empty-group check misses.** Real example (2022v5.0, from the 2023
+posting): one structured row with `RecipientPersonNm = "VARIOUS ORGANIZATIONS"`, address
+`SEE ATTACHED SCHEDULE`, country `CI`, amount `9758900`, and no stated total anywhere in the
+filing. The group is not empty, so the empty-group detector stays quiet; the person-name slot is
+populated, so a naive rule tags $9.76M as a scholarship to a natural person and drops it from the
+default view. Both failures are silent. The extractor recognises aggregate placeholders
+(`VARIOUS`, `MISCELLANEOUS`, `SEE ATTACHED …`) on the row, tags them `recipient_type = unknown`,
+records a row-level flag, and fires the filing-level missing-detail flag when a stated total has
+*only* placeholder rows against it.
+
+**`RecipientPersonNm` is not a reliable person indicator on its own.** Filers put organization
+names in it routinely. On one 2022v5.0 filing every one of seven rows used the person slot and
+every one was an organization — THE TREVOR PROJECT, ACTIVE MINDS INC, YWCA OF GREATER AUSTIN. The
+spec's rule is "populated *with no organizational tokens*", and that clause is load-bearing: the
+extractor applies a token list (INC, FOUNDATION, UNIVERSITY, …, plus the chapter organizations)
+before calling anything an individual. The honest limit is a two-word charity with no token —
+COMFORT CASES, BLACK MEN HEAL — which a name-only rule cannot distinguish from a person. That is
+why individuals are *tagged and excluded from the default view* rather than deleted: a wrong tag
+is recoverable, a deleted row is not.
 
 ### 4b. Form 990, Schedule I — public charity grants
 

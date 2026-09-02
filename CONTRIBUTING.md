@@ -65,12 +65,16 @@ node. That fragment is what you need to file a good report.
 
 ### 2. Confirm it against the real filing
 
-Download the raw XML directly and look at it. Never file a mapping report based on our parsed
-output alone.
+Get the raw XML and look at it. Never file a mapping report based on our parsed output alone.
 
 ```bash
 funder-graph fetch-raw --object-id 202343159349100234 --out ./filing.xml
 ```
+
+There is no per-filing URL at the IRS (verified 2026-09-01: the per-object path redirects to the
+404 page, and the old S3 mirror is gone), so `fetch-raw` finds the filing in the year's index,
+identifies the bulk ZIP that contains it, and streams that one member out. The ZIP it needs can be
+a gigabyte; the first call for a given ZIP is slow and later ones are not.
 
 ### 3. File it upstream, then here
 

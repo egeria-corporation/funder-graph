@@ -1,0 +1,153 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<Return xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.irs.gov/efile" returnVersion="2022v5.0">
+  <ReturnHeader binaryAttachmentCnt="0">
+    <ReturnTs>2023-11-21T04:29:27-05:00</ReturnTs>
+    <TaxPeriodEndDt>2022-12-31</TaxPeriodEndDt>
+    <PreparerFirmGrp>
+      <PreparerFirmEIN>262176601</PreparerFirmEIN>
+      <PreparerFirmName>
+        <BusinessNameLine1Txt>EASY OFFICE dba JITASA</BusinessNameLine1Txt>
+      </PreparerFirmName>
+      <PreparerUSAddress>
+        <AddressLine1Txt>1120 S RACKHAM WAY</AddressLine1Txt>
+        <CityNm>MERIDIAN</CityNm>
+        <StateAbbreviationCd>ID</StateAbbreviationCd>
+        <ZIPCd>83642</ZIPCd>
+      </PreparerUSAddress>
+    </PreparerFirmGrp>
+    <ReturnTypeCd>990PF</ReturnTypeCd>
+    <TaxPeriodBeginDt>2022-01-01</TaxPeriodBeginDt>
+    <Filer>
+      <EIN>852985262</EIN>
+      <BusinessName>
+        <BusinessNameLine1Txt>FOUNDATION 43</BusinessNameLine1Txt>
+      </BusinessName>
+      <InCareOfNm>% THOMAS MONTGOMERY</InCareOfNm>
+      <BusinessNameControlTxt>FOUN</BusinessNameControlTxt>
+      <ForeignPhoneNum>5126497502</ForeignPhoneNum>
+      <USAddress>
+        <AddressLine1Txt>1306 W OLTORF STREET</AddressLine1Txt>
+        <CityNm>AUSTIN</CityNm>
+        <StateAbbreviationCd>TX</StateAbbreviationCd>
+        <ZIPCd>78704</ZIPCd>
+      </USAddress>
+    </Filer>
+    <BusinessOfficerGrp>
+      <PersonNm>THOMAS MONTGOMERY</PersonNm>
+      <PersonTitleTxt>PRESIDENT</PersonTitleTxt>
+      <SignatureDt>2023-11-21</SignatureDt>
+      <DiscussWithPaidPreparerInd>true</DiscussWithPaidPreparerInd>
+    </BusinessOfficerGrp>
+    <PreparerPersonGrp>
+      <PreparerPersonNm>JEREMY CORK</PreparerPersonNm>
+      <PTIN>P01544850</PTIN>
+      <PhoneNum>2082874777</PhoneNum>
+      <PreparationDt>2023-11-21</PreparationDt>
+    </PreparerPersonGrp>
+    <TaxYr>2022</TaxYr>
+    <BuildTS>2023-04-26 12:10:37Z</BuildTS>
+  </ReturnHeader>
+  <ReturnData documentCnt="5">
+    <IRS990PF documentId="IRS990PF" softwareId="22016104" softwareVersionNum="V1.0" documentName="IRS990PF" referenceDocumentName="ReasonableCauseExplanation GeneralExplanationAttachment BinaryAttachment">
+      <SupplementaryInformationGrp>
+        <ContributingManagerNm>NONE</ContributingManagerNm>
+        <ShareholderManagerNm>NONE</ShareholderManagerNm>
+        <OnlyContriToPreselectedInd>X</OnlyContriToPreselectedInd>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>THE TREVOR PROJECT</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>PO BOX 69232</AddressLine1Txt>
+            <CityNm>WEST HOLLYWOOD</CityNm>
+            <StateAbbreviationCd>CA</StateAbbreviationCd>
+            <ZIPCd>90069</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>No Relationship</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>PC</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>TO SUPPORT ADDRESS AND RAISE AWARENESS OF ISSUES REGARDING MENTAL HEALTH AND OTHER SOCIAL CAUSES</GrantOrContributionPurposeTxt>
+          <Amt>64428</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>HEADSTRONG PROJECT INC</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>655 MADISON AVENUE</AddressLine1Txt>
+            <AddressLine2Txt>18TH FLOOR</AddressLine2Txt>
+            <CityNm>NEW YORK</CityNm>
+            <StateAbbreviationCd>NY</StateAbbreviationCd>
+            <ZIPCd>10065</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>No Relationship</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>PC</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>TO SUPPORT ADDRESS AND RAISE AWARENESS OF ISSUES REGARDING MENTAL HEALTH AND OTHER SOCIAL CAUSES</GrantOrContributionPurposeTxt>
+          <Amt>45560</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>BLACK MEN HEAL</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>63 W LANCASTER AVENUE</AddressLine1Txt>
+            <CityNm>ARDMORE</CityNm>
+            <StateAbbreviationCd>PA</StateAbbreviationCd>
+            <ZIPCd>19003</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>No Relationship</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>PC</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>TO SUPPORT ADDRESS AND RAISE AWARENESS OF ISSUES REGARDING MENTAL HEALTH AND OTHER SOCIAL CAUSES</GrantOrContributionPurposeTxt>
+          <Amt>40328</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>ACTIVE MINDS INC</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>2001 S STREET NW</AddressLine1Txt>
+            <AddressLine2Txt>SUITE 630</AddressLine2Txt>
+            <CityNm>WASHINGTON</CityNm>
+            <StateAbbreviationCd>DC</StateAbbreviationCd>
+            <ZIPCd>20009</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>No Relationship</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>PC</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>TO SUPPORT ADDRESS AND RAISE AWARENESS OF ISSUES REGARDING MENTAL HEALTH AND OTHER SOCIAL CAUSES</GrantOrContributionPurposeTxt>
+          <Amt>40328</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>SOCIAL GOOD FUND</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>PO BOX 5473</AddressLine1Txt>
+            <CityNm>RICHMOND</CityNm>
+            <StateAbbreviationCd>CA</StateAbbreviationCd>
+            <ZIPCd>94805</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>No Relationship</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>PC</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>TO SUPPORT ADDRESS AND RAISE AWARENESS OF ISSUES REGARDING MENTAL HEALTH AND OTHER SOCIAL CAUSES</GrantOrContributionPurposeTxt>
+          <Amt>5000</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>THE TRAVIS MILLS FOUNDATION</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>647 CASTLE ISLAND ROAD</AddressLine1Txt>
+            <CityNm>MT VERNON</CityNm>
+            <StateAbbreviationCd>ME</StateAbbreviationCd>
+            <ZIPCd>04352</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>No Relationship</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>PC</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>TO SUPPORT ADDRESS AND RAISE AWARENESS OF ISSUES REGARDING MENTAL HEALTH AND OTHER SOCIAL CAUSES</GrantOrContributionPurposeTxt>
+          <Amt>2500</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <GrantOrContributionPdDurYrGrp>
+          <RecipientPersonNm>YWCA OF GREATER AUSTIN</RecipientPersonNm>
+          <RecipientUSAddress>
+            <AddressLine1Txt>2015 I 35 110</AddressLine1Txt>
+            <CityNm>AUSTIN</CityNm>
+            <StateAbbreviationCd>TX</StateAbbreviationCd>
+            <ZIPCd>78741</ZIPCd>
+          </RecipientUSAddress>
+          <RecipientRelationshipTxt>No Relationship</RecipientRelationshipTxt>
+          <RecipientFoundationStatusTxt>PC</RecipientFoundationStatusTxt>
+          <GrantOrContributionPurposeTxt>TO SUPPORT ADDRESS AND RAISE AWARENESS OF ISSUES REGARDING MENTAL HEALTH AND OTHER SOCIAL CAUSES</GrantOrContributionPurposeTxt>
+          <Amt>1000</Amt>
+        </GrantOrContributionPdDurYrGrp>
+        <TotalGrantOrContriPdDurYrAmt>199144</TotalGrantOrContriPdDurYrAmt>
+      </SupplementaryInformationGrp>
+      </IRS990PF>
+    </ReturnData>
+</Return>

@@ -1,0 +1,87 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "funder-graph"
+version = "0.1.0"
+description = "The open 990 funding graph: who funded whom, from Form 990-PF Part XV and Form 990 Schedule I, as versioned Parquet."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+requires-python = ">=3.11"
+authors = [{ name = "Egeria Corporation" }]
+keywords = ["nonprofit", "990", "990-PF", "foundations", "grants", "IRS", "parquet", "duckdb"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Sociology",
+]
+
+# Pinned to lower bounds that are known to resolve on win_arm64 as well as the CI matrix.
+# `lxml` is the parser (iterparse + clear, for millions of documents); `duckdb` is both the
+# query engine and the build-state store; `pyarrow` writes Parquet; `zstandard` is the
+# Parquet codec and the index-shard codec; `httpx` does the polite, resumable downloads.
+dependencies = [
+  "click>=8.1",
+  "duckdb>=1.1",
+  "httpx>=0.27",
+  "lxml>=5.3",
+  "pyarrow>=17",
+  "zstandard>=0.23",
+]
+
+[project.optional-dependencies]
+# The MCP server is an adapter over the library. Kept optional so `uvx funder-graph query`
+# does not drag in an SDK a CLI user never touches.
+mcp = ["mcp>=2.0"]
+
+[project.scripts]
+funder-graph = "funder_graph.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/egeria-corporation/funder-graph"
+Dataset = "https://data.opengrants.io/funder-graph/"
+Hosted = "https://funders.opengrants.io"
+Issues = "https://github.com/egeria-corporation/funder-graph/issues"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.8",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["funder_graph"]
+
+[tool.hatch.build.targets.sdist]
+# The vendored concordance ships with the package: a build must be reproducible with no
+# network, and the concordance commit SHA is stamped into every published row.
+include = ["funder_graph", "data/concordance", "data/upstream-pins.toml", "README.md", "LICENSE", "NOTICE"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# Ruff formats fenced code blocks inside Markdown; letting it loose on the docs and the
+# build prompts rewrites illustrative snippets and fails CI on files nobody executes.
+extend-exclude = ["docs", "prompts", "*.md", "build", "data"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+  "E501",   # line length is the formatter's job
+  "RUF012", # mutable class attrs; the dataclasses here are frozen where it matters
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["funder_graph"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+filterwarnings = ["error::DeprecationWarning:funder_graph"]

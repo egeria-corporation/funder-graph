@@ -25,7 +25,10 @@ IRS E-file Master Concordance File
   Author:  Nonprofit Open Data Collective
   Source:  https://github.com/Nonprofit-Open-Data-Collective/irs-efile-master-concordance-file
   Docs:    https://nonprofit-open-data-collective.github.io/irs-efile-master-concordance-file/
-  License: see LICENSE at the pinned commit; recorded in data/upstream-pins.toml
+  License: Open Data Commons Attribution License v1.0 (ODC-By-1.0), as read from
+           LICENSE.md at commit d8266da934cd1cb5d1d9cedc5398ba107b0c7bbe (2026-08-23).
+           Full text reproduced at data/concordance/LICENSE.md. Vendored files and
+           their SHA-256s are listed in data/upstream-pins.toml.
   Use:     Primary field-to-XPath crosswalk across 990 schema versions. Every
            grant field this project extracts is located through the concordance
            rather than through XPaths written by us.

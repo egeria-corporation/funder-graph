@@ -8,3 +8,7 @@
 *.parquet binary
 *.sqlite binary
 *.zst binary
+
+# Vendored upstream files are checksummed in data/upstream-pins.toml. Any end-of-line rewrite
+# on checkout silently breaks every pin on a fresh clone, so git must never touch these bytes.
+data/concordance/** -text
