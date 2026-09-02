@@ -1,0 +1,297 @@
+"""Stage 2: index the corpus, deduplicate amended returns, reconcile, stream.
+
+The index CSV is the map from a filing to the XML document that contains it, and it carries
+``SUB_DATE`` — the only source for when a filing became public, absent from the XML. Three
+rules from the spec live here:
+
+* **Map headers defensively; fail loudly on one we do not recognise.** Headers have varied
+  across years. Guessing what an unknown column means is how a whole year silently gets the
+  wrong submission date.
+* **Amended and superseded returns are deduplicated, not discarded.** Group on
+  ``(EIN, TAX_PERIOD, RETURN_TYPE)``, keep the latest ``SUB_DATE``, and write the losers to
+  ``superseded_filings``. The count is a health signal worth logging.
+* **Reconcile the index against ZIP contents in both directions and report the delta.**
+  Verified on the 2023 posting: ``2023_TEOS_XML_12A.zip`` holds 20,007 members, all present
+  in the index, but the spec is right that this is not guaranteed for every posting.
+
+Extraction is lazy: members are streamed out of the ZIP one at a time. Nothing is exploded
+to disk.
+"""
+
+from __future__ import annotations
+
+import csv
+import io
+import zipfile
+from collections.abc import Iterator
+from dataclasses import dataclass
+from pathlib import Path
+
+import duckdb
+
+# Every header we have seen or expect, mapped to the canonical name. Matching is
+# case-insensitive and ignores surrounding whitespace. Anything else is an error.
+_HEADER_ALIASES: dict[str, str] = {
+    "RETURN_ID": "return_id",
+    "FILING_TYPE": "filing_type",
+    "EIN": "ein",
+    "TAX_PERIOD": "tax_period",
+    "SUB_DATE": "sub_date",
+    "TAXPAYER_NAME": "taxpayer_name",
+    "RETURN_TYPE": "return_type",
+    "DLN": "dln",
+    "OBJECT_ID": "object_id",
+    # Variants seen in older postings and in community mirrors of the index.
+    "TAX_PRD": "tax_period",
+    "SUBMISSION_DATE": "sub_date",
+    "TAXPAYER NAME": "taxpayer_name",
+    "RETURN TYPE": "return_type",
+    "OBJECT ID": "object_id",
+}
+REQUIRED = {"ein", "tax_period", "sub_date", "taxpayer_name", "return_type", "object_id"}
+
+# Only these carry grant edges. 990-EZ and 990-T do not; 990-N has no schedules at all.
+GRANT_RETURN_TYPES = ("990", "990PF")
+
+
+class IndexHeaderError(ValueError):
+    """The index CSV has a column we do not know how to interpret."""
+
+
+def normalize_header(raw: list[str]) -> list[str]:
+    """Canonical column names, or a loud error naming the unknown header."""
+    out = []
+    unknown = []
+    for name in raw:
+        key = name.strip().upper().lstrip("﻿")
+        if key in _HEADER_ALIASES:
+            out.append(_HEADER_ALIASES[key])
+        else:
+            unknown.append(name)
+    if unknown:
+        raise IndexHeaderError(
+            f"unrecognised index column(s) {unknown!r}; add an alias in "
+            "funder_graph/pipeline/extract.py rather than guessing"
+        )
+    missing = REQUIRED - set(out)
+    if missing:
+        raise IndexHeaderError(f"index is missing required column(s) {sorted(missing)!r}")
+    return out
+
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS filings_index (
+  object_id     VARCHAR PRIMARY KEY,
+  filing_year   INTEGER NOT NULL,
+  return_id     VARCHAR,
+  ein           VARCHAR NOT NULL,
+  tax_period    VARCHAR NOT NULL,
+  sub_date      VARCHAR,
+  taxpayer_name VARCHAR,
+  return_type   VARCHAR NOT NULL,
+  dln           VARCHAR
+);
+CREATE TABLE IF NOT EXISTS superseded_filings (
+  object_id      VARCHAR PRIMARY KEY,
+  filing_year    INTEGER NOT NULL,
+  ein            VARCHAR NOT NULL,
+  tax_period     VARCHAR NOT NULL,
+  return_type    VARCHAR NOT NULL,
+  sub_date       VARCHAR,
+  superseded_by  VARCHAR NOT NULL
+);
+CREATE TABLE IF NOT EXISTS zip_members (
+  object_id  VARCHAR NOT NULL,
+  zip_file   VARCHAR NOT NULL,
+  member     VARCHAR NOT NULL,
+  bytes      BIGINT NOT NULL,
+  PRIMARY KEY (object_id, zip_file)
+);
+"""
+
+
+@dataclass(frozen=True)
+class IndexSummary:
+    filing_year: int
+    rows_read: int
+    grant_bearing: int
+    kept: int
+    superseded: int
+    by_return_type: dict[str, int]
+
+
+def load_index(conn: duckdb.DuckDBPyConnection, csv_path: Path, filing_year: int) -> IndexSummary:
+    """Load one year's index CSV, filtered to grant-bearing forms and deduplicated.
+
+    Idempotent for a given year: rows for ``filing_year`` are replaced.
+    """
+    conn.execute(_SCHEMA)
+    with csv_path.open(encoding="utf-8", errors="replace", newline="") as handle:
+        reader = csv.reader(handle)
+        columns = normalize_header(next(reader))
+        rows = [dict(zip(columns, row, strict=False)) for row in reader if any(row)]
+
+    by_type: dict[str, int] = {}
+    for r in rows:
+        by_type[r["return_type"]] = by_type.get(r["return_type"], 0) + 1
+    grant = [r for r in rows if r["return_type"] in GRANT_RETURN_TYPES]
+
+    # Dedup: latest SUB_DATE wins; ties broken by OBJECT_ID so the choice is deterministic.
+    best: dict[tuple[str, str, str], dict[str, str]] = {}
+    losers: list[tuple[dict[str, str], str]] = []
+    for r in sorted(grant, key=lambda r: (r["sub_date"] or "", r["object_id"])):
+        key = (r["ein"], r["tax_period"], r["return_type"])
+        prior = best.get(key)
+        if prior is not None:
+            losers.append((prior, r["object_id"]))
+        best[key] = r
+
+    conn.execute("DELETE FROM filings_index WHERE filing_year = ?", [filing_year])
+    conn.execute("DELETE FROM superseded_filings WHERE filing_year = ?", [filing_year])
+    if best:
+        conn.executemany(
+            "INSERT INTO filings_index VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    r["object_id"],
+                    filing_year,
+                    r.get("return_id"),
+                    r["ein"],
+                    r["tax_period"],
+                    r["sub_date"],
+                    r["taxpayer_name"],
+                    r["return_type"],
+                    r.get("dln"),
+                )
+                for r in best.values()
+            ],
+        )
+    # DuckDB's executemany raises on an empty parameter list, and "nothing was superseded"
+    # is the common case - it is what every test without an amended pair looked like.
+    if losers:
+        conn.executemany(
+            "INSERT INTO superseded_filings VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    r["object_id"],
+                    filing_year,
+                    r["ein"],
+                    r["tax_period"],
+                    r["return_type"],
+                    r["sub_date"],
+                    winner,
+                )
+                for r, winner in losers
+            ],
+        )
+    return IndexSummary(
+        filing_year=filing_year,
+        rows_read=len(rows),
+        grant_bearing=len(grant),
+        kept=len(best),
+        superseded=len(losers),
+        by_return_type=dict(sorted(by_type.items())),
+    )
+
+
+def _object_id(member: str) -> str | None:
+    name = member.rsplit("/", 1)[-1]
+    if not name.lower().endswith("_public.xml"):
+        return None
+    return name[: -len("_public.xml")]
+
+
+def register_zip(conn: duckdb.DuckDBPyConnection, zip_path: Path) -> int:
+    """Record every XML member of an archive. Returns the member count."""
+    conn.execute(_SCHEMA)
+    conn.execute("DELETE FROM zip_members WHERE zip_file = ?", [zip_path.name])
+    rows = []
+    with zipfile.ZipFile(zip_path) as archive:
+        for info in archive.infolist():
+            oid = _object_id(info.filename)
+            if oid:
+                rows.append((oid, zip_path.name, info.filename, info.file_size))
+    if rows:
+        conn.executemany("INSERT INTO zip_members VALUES (?, ?, ?, ?)", rows)
+    return len(rows)
+
+
+@dataclass(frozen=True)
+class Reconciliation:
+    filing_year: int
+    index_only: int  # in the (deduplicated) index, in no registered ZIP
+    zip_only: int  # in a ZIP, not in the index at all (including superseded)
+    matched: int
+
+    def write_csv(self, conn: duckdb.DuckDBPyConnection, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        conn.execute(
+            f"""
+            COPY (
+              SELECT 'index_only' AS kind, i.object_id, i.return_type, NULL AS zip_file
+              FROM filings_index i LEFT JOIN zip_members z USING (object_id)
+              WHERE i.filing_year = {self.filing_year} AND z.object_id IS NULL
+              UNION ALL
+              SELECT 'zip_only', z.object_id, NULL, z.zip_file
+              FROM zip_members z
+              LEFT JOIN filings_index i USING (object_id)
+              LEFT JOIN superseded_filings s USING (object_id)
+              WHERE i.object_id IS NULL AND s.object_id IS NULL
+              ORDER BY 1, 2
+            ) TO '{path.as_posix()}' (HEADER, DELIMITER ',')
+            """
+        )
+
+
+def reconcile(conn: duckdb.DuckDBPyConnection, filing_year: int) -> Reconciliation:
+    """Index vs. ZIP contents, both directions. Reports; never raises."""
+    conn.execute(_SCHEMA)
+    (index_only,) = conn.execute(
+        "SELECT COUNT(*) FROM filings_index i LEFT JOIN zip_members z USING (object_id) "
+        "WHERE i.filing_year = ? AND z.object_id IS NULL",
+        [filing_year],
+    ).fetchone()
+    (zip_only,) = conn.execute(
+        "SELECT COUNT(DISTINCT z.object_id) FROM zip_members z "
+        "LEFT JOIN filings_index i USING (object_id) "
+        "LEFT JOIN superseded_filings s USING (object_id) "
+        "WHERE i.object_id IS NULL AND s.object_id IS NULL"
+    ).fetchone()
+    (matched,) = conn.execute(
+        "SELECT COUNT(*) FROM filings_index i JOIN zip_members z USING (object_id) "
+        "WHERE i.filing_year = ?",
+        [filing_year],
+    ).fetchone()
+    return Reconciliation(filing_year, index_only, zip_only, matched)
+
+
+def iter_filings(zip_path: Path, only: set[str] | None = None) -> Iterator[tuple[str, bytes]]:
+    """Stream ``(object_id, xml_bytes)`` out of an archive without extracting it.
+
+    ``only`` restricts to a set of OBJECT_IDs — the deduplicated, grant-bearing ones — so
+    superseded returns and 990-EZ filings are never even decompressed.
+    """
+    with zipfile.ZipFile(zip_path) as archive:
+        for info in archive.infolist():
+            oid = _object_id(info.filename)
+            if oid is None or (only is not None and oid not in only):
+                continue
+            with archive.open(info) as member:
+                yield oid, member.read()
+
+
+def wanted_object_ids(conn: duckdb.DuckDBPyConnection, filing_year: int) -> set[str]:
+    """The deduplicated, grant-bearing OBJECT_IDs for a posting year."""
+    rows = conn.execute(
+        "SELECT object_id FROM filings_index WHERE filing_year = ?", [filing_year]
+    ).fetchall()
+    return {r[0] for r in rows}
+
+
+def build_zip(members: dict[str, bytes], zip_stem: str) -> bytes:
+    """A ZIP in the IRS layout (``{stem}/{OBJECT_ID}_public.xml``). For tests."""
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        for oid, data in members.items():
+            archive.writestr(f"{zip_stem}/{oid}_public.xml", data)
+    return buffer.getvalue()

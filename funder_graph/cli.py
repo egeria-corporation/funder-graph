@@ -161,3 +161,42 @@ def build_download(years: str, work_dir: Path | None) -> None:
     if failed:
         _emit("re-run to resume; partial files are kept and continued")
         sys.exit(1)
+
+
+@build.command("extract")
+@click.option("--years", default="2019-2026", show_default=True)
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+def build_extract(years: str, work_dir: Path | None) -> None:
+    """Index each posting, deduplicate amended returns, reconcile against the archives."""
+    import duckdb
+
+    from funder_graph.pipeline.download import parse_years
+    from funder_graph.pipeline.extract import load_index, reconcile, register_zip
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    conn = duckdb.connect(str(work / "state.duckdb"))
+    try:
+        for year in parse_years(years):
+            raw = work / "raw" / str(year)
+            index = raw / f"index_{year}.csv"
+            if not index.exists():
+                _emit(f"{year}: no index at {index}; run `build download --years {year}` first")
+                continue
+            s = load_index(conn, index, year)
+            _emit(
+                f"{year}: {s.rows_read:,} index rows; {s.grant_bearing:,} on 990/990-PF; "
+                f"{s.kept:,} kept after dedup, {s.superseded:,} superseded"
+            )
+            _emit(f"      by return type: {s.by_return_type}")
+            zips = sorted(raw.glob("*.zip"))
+            members = sum(register_zip(conn, z) for z in zips)
+            _emit(f"      {len(zips)} archives, {members:,} XML members registered")
+            r = reconcile(conn, year)
+            report = work / "reports" / f"index-reconciliation-{year}.csv"
+            r.write_csv(conn, report)
+            _emit(
+                f"      reconciliation: {r.matched:,} matched, {r.index_only:,} index-only, "
+                f"{r.zip_only:,} zip-only -> {report}"
+            )
+    finally:
+        conn.close()
