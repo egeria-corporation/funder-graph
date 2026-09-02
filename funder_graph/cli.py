@@ -585,6 +585,9 @@ def build_sample_for_labeling(n: int, seed: str, out: Path | None, work_dir: Pat
     help="Upload into this directory instead of the bucket: a rehearsal.",
 )
 @click.option("--dry-run", is_flag=True, help="Stage and print the manifest; upload nothing.")
+@click.option(
+    "--s3", "use_s3", is_flag=True, help="Upload through the R2 S3 API (needs the token)."
+)
 def build_publish(
     work_dir: Path | None,
     dataset_version: str | None,
@@ -593,6 +596,7 @@ def build_publish(
     latest: bool,
     to_dir: Path | None,
     dry_run: bool,
+    use_s3: bool,
 ) -> None:
     """Stage one object per filing year plus manifest.json, then upload (D-009).
     Never run this below the precision gates: `build eval` first.
@@ -639,7 +643,23 @@ def build_publish(
             f"dry run: nothing uploaded; staging in {work / 'publish' / manifest.dataset_version}"
         )
         return
-    uploader = DirUploader(to_dir) if to_dir else WranglerUploader(bucket or DEFAULT_BUCKET)
+    if to_dir:
+        uploader = DirUploader(to_dir)
+    elif use_s3:
+        from funder_graph.pipeline.r2_upload import (
+            MissingCredentials,
+            R2Config,
+            S3Uploader,
+            make_client,
+        )
+
+        try:
+            uploader = S3Uploader(make_client(R2Config.from_env()), bucket or DEFAULT_BUCKET)
+        except MissingCredentials as exc:
+            _emit(f"STOP: {exc}")
+            sys.exit(3)
+    else:
+        uploader = WranglerUploader(bucket or DEFAULT_BUCKET)
     try:
         keys = upload(
             work / "publish", manifest, uploader, prefix=prefix or DEFAULT_PREFIX, latest=latest
@@ -673,6 +693,78 @@ def build_site_cmd(work_dir: Path | None, years: str | None, limit: int | None) 
         + (f" - sample of the top {limit:,} funders" if limit else "")
         + f" -> {b.out_dir}"
     )
+
+
+@build.command("site-upload")
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+@click.option("--dataset-version", required=True, help="The build/site/<version>/ to upload.")
+@click.option("--bucket", default=None, show_default="opengrants-data")
+@click.option("--prefix", default=None, show_default="funder-graph")
+@click.option("--only", multiple=True, help="Top-level names to upload, e.g. funders sitemaps.")
+@click.option("--workers", type=int, default=32, show_default=True)
+@click.option(
+    "--no-skip", is_flag=True, help="Upload everything, even objects whose content matches."
+)
+@click.option("--dry-run", is_flag=True, help="Count what would upload; touch nothing.")
+def build_site_upload(
+    work_dir: Path | None,
+    dataset_version: str,
+    bucket: str | None,
+    prefix: str | None,
+    only: tuple[str, ...],
+    workers: int,
+    no_skip: bool,
+    dry_run: bool,
+) -> None:
+    """Bulk-upload a version's site payloads to R2 through the S3 API (needs the R2 token).
+    Credentials come from R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and CLOUDFLARE_ACCOUNT_ID
+    in the environment; nothing else is read and nothing is printed.
+    """
+    from funder_graph.pipeline.publish import DEFAULT_BUCKET, DEFAULT_PREFIX
+    from funder_graph.pipeline.r2_upload import (
+        MissingCredentials,
+        R2Config,
+        make_client,
+        plan,
+        upload_tree,
+    )
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    root = work / "site" / dataset_version
+    if not root.exists():
+        _emit(f"STOP: {root} does not exist; run `build site` first")
+        sys.exit(2)
+    key_prefix = f"{prefix or DEFAULT_PREFIX}/{dataset_version}"
+    items = plan(root, key_prefix, only=only or None)
+    size = sum(i.path.stat().st_size for i in items)
+    _emit(f"{len(items):,} objects, {size / 1e6:,.0f} MB under {key_prefix}/")
+    if dry_run:
+        return
+    try:
+        client = make_client(R2Config.from_env())
+    except MissingCredentials as exc:
+        _emit(f"STOP: {exc}")
+        sys.exit(3)
+    result = upload_tree(
+        client,
+        bucket or DEFAULT_BUCKET,
+        root,
+        key_prefix,
+        only=only or None,
+        workers=workers,
+        skip_unchanged=not no_skip,
+        progress=lambda i, n, r: _emit(
+            f"  {i:,}/{n:,}  uploaded {r.uploaded:,}  skipped {r.skipped:,}  failed {len(r.failed)}"
+        ),
+    )
+    _emit(
+        f"done: {result.uploaded:,} uploaded ({result.bytes_sent / 1e6:,.0f} MB), "
+        f"{result.skipped:,} unchanged, {len(result.failed)} failed"
+    )
+    for key, err in result.failed[:10]:
+        _emit(f"  FAILED {key}: {err}")
+    if result.failed:
+        sys.exit(1)
 
 
 @main.group()
