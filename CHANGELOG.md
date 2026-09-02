@@ -17,6 +17,11 @@ All notable changes to `funder-graph` are documented here. This project follows 
   manual_correction`, a new value in that column's enumeration.
 - `grantcheck` (the sibling repository's TEOS parsers) and `jellyfish` (the phonetic blocking
   key) as dependencies.
+- `build eval`: the matcher scored on `tests/fixtures/matching/labeled_pairs.csv` with the
+  per-tier precision targets from the build spec as gates (A 100%, B 99%, C 95%, D 80%),
+  written to `build/reports/matching-eval.md`; it fails until the set holds 1,000
+  hand-verified pairs. `build sample-for-labeling` draws the rows to verify, stratified
+  across tiers.
 - Milestone 1: package skeleton (`pyproject.toml`, `uv`, `ruff`, `pytest`, CI), the
   concordance loader, and the Part XV / Schedule I extractor. `funder-graph parse-filing`
   prints real grant rows from one real filing, mapped through the concordance.

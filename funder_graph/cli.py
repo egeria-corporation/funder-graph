@@ -464,3 +464,94 @@ def build_resolve(years: str | None, work_dir: Path | None, re_resolve_unresolve
         f"{result.bmf_vintage} ({tiers or 'none pending'}); "
         f"{result.rows_rewritten:,} rows across {result.files_rewritten} files rewritten"
     )
+
+
+EVAL_GATE_EXIT = 4
+LABELED_DEFAULT = (
+    Path(__file__).resolve().parents[1] / "tests" / "fixtures" / "matching" / "labeled_pairs.csv"
+)
+
+
+@build.command("eval")
+@click.option(
+    "--labeled",
+    type=click.Path(dir_okay=False, path_type=Path),
+    default=None,
+    help="The hand-verified labeled pairs (default: tests/fixtures/matching/labeled_pairs.csv).",
+)
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+def build_eval(labeled: Path | None, work_dir: Path | None) -> None:
+    """Score the matcher on the labeled set and enforce the per-tier precision gates.
+
+    Writes build/reports/matching-eval.md. Exits 4 if the set is smaller than 1,000 pairs or
+    any tier is below its target (A 100%, B 99%, C 95%, D 80%); a missed target is fixed by
+    demoting rows out of the tier, never by loosening the target.
+    """
+    from datetime import UTC, datetime
+
+    import duckdb
+
+    from funder_graph.resolve.bmf import bmf_count, bmf_vintage, ensure_bmf_schema
+    from funder_graph.resolve.evaluate import evaluate, load_labeled, write_matching_eval
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    labeled = labeled or LABELED_DEFAULT
+    conn = duckdb.connect(str(work / "state.duckdb"))
+    try:
+        ensure_bmf_schema(conn)
+        vintage = bmf_vintage(conn)
+        if not vintage or bmf_count(conn) == 0:
+            _emit("STOP: no Business Master File loaded; run `build bmf` first")
+            sys.exit(1)
+        evaluation = evaluate(conn, load_labeled(labeled))
+    finally:
+        conn.close()
+
+    report = work / "reports" / "matching-eval.md"
+    write_matching_eval(
+        evaluation, report, bmf_vintage=vintage, now=datetime.now(UTC), labeled_path=labeled
+    )
+    for tier in "ABCD":
+        s = evaluation.tiers[tier]
+        shown = "n/a" if s.precision is None else f"{s.precision:.1%}"
+        _emit(f"tier {tier}: {s.correct}/{s.resolved} correct = {shown}")
+    recall = "n/a" if evaluation.recall is None else f"{evaluation.recall:.1%}"
+    _emit(f"recall {recall} over {evaluation.n:,} labeled pairs -> {report}")
+    failures = evaluation.gate()
+    for failure in failures:
+        _emit(f"STOP: {failure}")
+    if failures:
+        sys.exit(EVAL_GATE_EXIT)
+
+
+@build.command("sample-for-labeling")
+@click.option("--n", default=1200, show_default=True, help="Rows to draw, an equal share per tier.")
+@click.option(
+    "--seed", default="2026-09", show_default=True, help="Any string; same seed, same sample."
+)
+@click.option("--out", type=click.Path(dir_okay=False, path_type=Path), default=None)
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+def build_sample_for_labeling(n: int, seed: str, out: Path | None, work_dir: Path | None) -> None:
+    """Draw recipient tuples from the stored resolutions for hand verification.
+
+    Stratified across the matcher tiers. The output carries the matcher suggestion for the
+    convenience of the verifier; verification is against the BMF and the filing, not the
+    suggestion. Append verified rows to tests/fixtures/matching/labeled_pairs.csv.
+    """
+    import duckdb
+
+    from funder_graph.resolve.evaluate import sample_for_labeling, write_sample
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    out = out or work / "reports" / "labeling-sample.csv"
+    conn = duckdb.connect(str(work / "state.duckdb"), read_only=True)
+    try:
+        rows = sample_for_labeling(conn, n, seed=seed)
+    finally:
+        conn.close()
+    write_sample(rows, out)
+    by_tier: dict[str, int] = {}
+    for row in rows:
+        by_tier[row["matcher_tier"]] = by_tier.get(row["matcher_tier"], 0) + 1
+    shares = ", ".join(f"{t}={c}" for t, c in sorted(by_tier.items()))
+    _emit(f"{len(rows):,} rows ({shares or 'none'}) -> {out}")
