@@ -651,6 +651,30 @@ def build_publish(
     _emit(f"uploaded {len(keys)} objects to {where} ({'with' if latest else 'without'} latest/)")
 
 
+@build.command("site")
+@click.option("--work-dir", type=click.Path(file_okay=False, path_type=Path), default=None)
+@click.option("--years", default=None, help="Filing years to include, e.g. 2023 or 2019-2026.")
+@click.option(
+    "--limit", type=int, default=None, help="Top-N funders by dollars paid: a local sample."
+)
+def build_site_cmd(work_dir: Path | None, years: str | None, limit: int | None) -> None:
+    """Write the hosted site's payloads, D1 rows and sitemaps under build/site/<version>/."""
+    from funder_graph.pipeline.download import parse_years
+    from funder_graph.pipeline.site_payloads import build_site
+
+    work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
+    wanted = parse_years(years) if years else None
+    b = build_site(
+        work / "parquet", work / "state.duckdb", work / "site", years=wanted, limit=limit
+    )
+    _emit(
+        f"site {b.dataset_version}: {b.funders:,} funders ({b.funders_chunked:,} chunked), "
+        f"{b.recipients:,} recipients, {b.grant_rows:,} grant rows"
+        + (f" - sample of the top {limit:,} funders" if limit else "")
+        + f" -> {b.out_dir}"
+    )
+
+
 @main.group()
 def dataset() -> None:
     """The published dataset, as a reader sees it."""
