@@ -40,7 +40,10 @@ import duckdb
 CHUNK_THRESHOLD = 2_000  # grant rows; above this a funder is split by tax year
 PAGE_ROWS = 1_000  # rows per page inside a chunked year; a Worker parses one page per request
 TOP_RECIPIENTS = 250
-RECENT_GRANTS = 500
+# A funder under the chunk threshold carries every row in its payload, so the page shows the
+# complete list; a chunked funder carries this many most-recent rows as a preview and the
+# rest in year pages.
+RECENT_GRANTS = CHUNK_THRESHOLD
 SITEMAP_URLS = 50_000
 D1_BATCH = 500
 SITE_ORIGIN = "https://funders.opengrants.io"
