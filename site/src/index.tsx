@@ -48,6 +48,10 @@ const app = new Hono<Bindings>();
 
 const WEEK = 604_800;
 const DAY = 86_400;
+const MINUTE = 60;
+// Bump on any change to what a cached page contains that the vintage does not capture (a
+// template change, a payload layout change). The vintage handles data; this handles code.
+const CACHE_EPOCH = "2";
 
 function cacheControl(seconds = WEEK): string {
   return `public, max-age=${seconds}, stale-while-revalidate=${DAY}`;
@@ -63,7 +67,9 @@ async function cached(
   render: () => Promise<Response>,
 ): Promise<Response> {
   const url = new URL(c.req.url);
-  const key = new Request(`${url.origin}${url.pathname}${url.search}?v=${vintage}`);
+  const key = new Request(
+    `${url.origin}${url.pathname}${url.search}?v=${vintage}&e=${CACHE_EPOCH}`,
+  );
   const cache = caches.default;
   const hit = await cache.match(key);
   if (hit) return hit;
@@ -129,7 +135,7 @@ app.get("/funders/:ein", async (c) => {
     const payload = row ? await funderPayload(c.env, v, row) : null;
     if (!row || !payload) {
       return c.html(<NotFound ein={ein} kind="funder" />, 404, {
-        "cache-control": cacheControl(DAY),
+        "cache-control": cacheControl(MINUTE),
       });
     }
     return c.html(
@@ -163,14 +169,14 @@ app.get("/funders/:ein/:year{[0-9]{4}}", async (c) => {
     const payload = row ? await funderPayload(c.env, v, row) : null;
     if (!row || !payload) {
       return c.html(<NotFound ein={ein} kind="funder" />, 404, {
-        "cache-control": cacheControl(DAY),
+        "cache-control": cacheControl(MINUTE),
       });
     }
     const yearPage = payload.chunked ? await funderYearPage(c.env, v, ein, year, page) : null;
     const hasYear = payload.years.some((y) => y.tax_year === year);
     if (!hasYear || (payload.chunked && !yearPage)) {
       return c.html(<NotFound ein={ein} kind="year" year={year} />, 404, {
-        "cache-control": cacheControl(DAY),
+        "cache-control": cacheControl(MINUTE),
       });
     }
     return c.html(
@@ -269,7 +275,7 @@ app.get("/browse/state/:code", async (c) => {
   return cached(c, v, async () => {
     const { rows, total } = await browseState(c.env, code, page);
     if (rows.length === 0)
-      return c.html(<NotFound kind="browse" />, 404, { "cache-control": cacheControl(DAY) });
+      return c.html(<NotFound kind="browse" />, 404, { "cache-control": cacheControl(MINUTE) });
     return c.html(
       <Browse
         kind="state"
@@ -295,7 +301,7 @@ app.get("/browse/ntee/:code", async (c) => {
   return cached(c, v, async () => {
     const { rows, total } = await browseNtee(c.env, code, page);
     if (rows.length === 0)
-      return c.html(<NotFound kind="browse" />, 404, { "cache-control": cacheControl(DAY) });
+      return c.html(<NotFound kind="browse" />, 404, { "cache-control": cacheControl(MINUTE) });
     return c.html(
       <Browse
         kind="ntee"
@@ -377,6 +383,8 @@ app.get("/robots.txt", (c) =>
   c.text(robotsTxt(origin(c)), 200, { "cache-control": cacheControl(DAY) }),
 );
 
-app.notFound((c) => c.html(<NotFound kind="page" />, 404, { "cache-control": cacheControl(DAY) }));
+app.notFound((c) =>
+  c.html(<NotFound kind="page" />, 404, { "cache-control": cacheControl(MINUTE) }),
+);
 
 export default app;
