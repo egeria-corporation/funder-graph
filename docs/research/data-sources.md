@@ -377,6 +377,14 @@ recipient EIN.
   --vintage 2026-08`, all four in one invocation. The vintage is the posting month, stamped on
   every row and on every resolution made against it.
 - **Cadence:** monthly.
+- **Load, measured 2026-09-02:** all four files in 2 min 08 s on a laptop; 1,957,340 organizations,
+  0 quarantined, 1 field warning; no EIN repeats across the four regional files in this vintage
+  (the duplicate seen in the fixture is within one file). 411,829 rows (21%) carry a sort name.
+  The state file grows by about 900 MB with the five blocking indexes. The largest blocking
+  buckets are small enough to score: state + first token peaks at 5,815 rows (IA, `PEO` - the
+  P.E.O. Sisterhood chapters), then TX `TEXAS` 5,033; the most common first token nationwide is
+  `AMERICAN` at 33,642. 538 names produce no phonetic key (nothing in the first two tokens
+  encodes, e.g. names that are digits) and fall back to the other blocks.
 - **Scale:** roughly 1.96 million rows.
 - **Key fields:** EIN, legal name, sort name (often the DBA), street, city, state, ZIP, subsection
   code, classification, ruling date, deductibility code, foundation code, NTEE code, asset amount,

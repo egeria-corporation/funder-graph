@@ -11,8 +11,9 @@ The shape:
   BMF row surviving any of the blocking keys (exact normalized name, exact sort name, a
   configured alias, state + first token, ZIP5 + first token, state + phonetic key). The
   candidates carry DuckDB's own Jaro-Winkler against both the legal and the sort name, and are
-  prefiltered at the probable threshold, so Python never sees the tens of thousands of
-  "COMMUNITY ..." rows a state holds.
+  prefiltered at the probable threshold, so Python never scores a whole block. The blocks are
+  smaller than feared: in the 2026-08 BMF the largest state + first-token bucket is 5,815 rows
+  (IA, "PEO"), and "AMERICAN" alone is 33,642 rows nationwide.
 * ``resolve_one`` - a pure function from one recipient and its candidates to a ``Resolution``.
   This is the whole of the tier logic and it is what the tests exercise.
 
