@@ -250,6 +250,12 @@ and a citation.
   organization requires matching against the Business Master File, and matching is inference.
   `match_confidence` and `match_tier` exist so you never have to guess how much to trust a row.
   Anything below 0.90 should be treated as a lead, not a fact.
+- **Schedule I often has no EIN either, and that is the filer, not us.** On the 2023 posting, 1 in
+  10 grant-bearing Form 990 filers report no recipient EIN on any grantee (1 in 4 on the older
+  schema versions), and 1 in 10 give no purpose text; those grantees are domestic organizations,
+  not foreign ones, and they resolve through the same matcher as 990-PF rows. The concordance
+  maps 99.4% of grant-bearing filings' publishable fields; the optional fields' presence is
+  published per version in `build/reports/version-coverage.csv`, not hidden in an average.
 - **`amount_type` matters.** 990-PF Part XV reports grants *paid during the year* and grants
   *approved for future payment* in two separate tables. They overlap across years. Summing both
   will overstate giving, sometimes badly. Default to `amount_type = 'paid'`.

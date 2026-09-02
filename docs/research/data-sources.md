@@ -296,7 +296,12 @@ is recoverable, a deleted row is not.
 
 "Grants and Other Assistance to Organizations, Governments, and Individuals in the United States."
 
-**Part II, grants to organizations** — the edge list, and it usually includes the recipient EIN:
+**Part II, grants to organizations** — the edge list. It usually includes the recipient EIN, but not
+always: measured on the 2023 posting, 15% of grant-bearing 2022v5.0 filers report no EIN on any
+grantee (23% on 2021v4.0), 10% give no purpose text, and the EIN-less grantees are domestic (2
+foreign rows in 19,000 sampled). Those rows go through the matcher like 990-PF rows. Coverage on
+the publishable fields (name, amount) is 98.0% of grant-bearing 2022v5.0 filings and 99.43%
+corpus-wide; see D-008.
 
 ```
 /Return/ReturnData/IRS990ScheduleI/RecipientTable
