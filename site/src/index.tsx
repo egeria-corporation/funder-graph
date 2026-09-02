@@ -88,7 +88,7 @@ const DAY = 86_400;
 const MINUTE = 60;
 // Bump on any change to what a cached page contains that the vintage does not capture (a
 // template change, a payload layout change). The vintage handles data; this handles code.
-const CACHE_EPOCH = "2";
+const CACHE_EPOCH = "3";
 
 function cacheControl(seconds = WEEK): string {
   return `public, max-age=${seconds}, stale-while-revalidate=${DAY}`;
