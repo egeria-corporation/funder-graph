@@ -5,7 +5,7 @@
 
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import app from "../src/index";
+import app, { cacheKey } from "../src/index";
 import { canonicalEin, displayEin, isCanonical } from "../src/lib/ein";
 import { compactMoney, money, niceName, yearSpan } from "../src/lib/format";
 import type { Env } from "../src/lib/store";
@@ -231,5 +231,15 @@ describe("the data domain index", () => {
   it("does not touch the funders site's routing", async () => {
     const res = await app.request("/robots.txt", {}, env());
     expect(res.status).toBe(200);
+  });
+});
+
+describe("the cache key", () => {
+  it("changes with the vintage, the index stamp, and the code epoch", () => {
+    const url = new URL("https://funders.opengrants.io/funders/941156365?page=2");
+    const a = cacheKey(url, "2026.09.0", "2026-09-02T18:00:00");
+    expect(a).toContain("/funders/941156365?page=2?v=2026.09.0&s=2026-09-02T18:00:00&e=");
+    expect(cacheKey(url, "2026.09.0", "later")).not.toBe(a);
+    expect(cacheKey(url, "2026.10.0", "2026-09-02T18:00:00")).not.toBe(a);
   });
 });

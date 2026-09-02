@@ -30,6 +30,16 @@ export type Env = {
 };
 
 export const VINTAGE_KEY = "current_dataset_version";
+/**
+ * A second KV key, set by every reseed of the index, that the cache key also carries. The
+ * vintage says which dataset; the stamp says which build of the index. Flipping either
+ * invalidates every rendered page without a deploy.
+ */
+export const STAMP_KEY = "current_dataset_stamp";
+
+export async function currentStamp(env: Env): Promise<string> {
+  return (await env.VINTAGE.get(STAMP_KEY)) ?? "";
+}
 
 /**
  * The dataset version every request renders. KV is the pointer and the cutover; D1's

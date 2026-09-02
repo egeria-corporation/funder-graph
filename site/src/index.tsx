@@ -22,6 +22,7 @@ import {
   type Env,
   browseNtee,
   browseState,
+  currentStamp,
   currentVintage,
   funderIndex,
   funderPayload,
@@ -98,15 +99,19 @@ function cacheControl(seconds = WEEK): string {
  * Render through the Cache API with the vintage in the key. A hit returns immediately and
  * revalidates in the background; a miss renders, stores, and returns.
  */
+/** The cache key: URL, dataset vintage, index stamp, code epoch. Any change invalidates. */
+export function cacheKey(url: URL, vintage: string, stamp: string): string {
+  return `${url.origin}${url.pathname}${url.search}?v=${vintage}&s=${stamp}&e=${CACHE_EPOCH}`;
+}
+
 async function cached(
   c: Context<Bindings>,
   vintage: string,
   render: () => Promise<Response>,
 ): Promise<Response> {
   const url = new URL(c.req.url);
-  const key = new Request(
-    `${url.origin}${url.pathname}${url.search}?v=${vintage}&e=${CACHE_EPOCH}`,
-  );
+  const stamp = await currentStamp(c.env);
+  const key = new Request(cacheKey(url, vintage, stamp));
   const cache = caches.default;
   const hit = await cache.match(key);
   if (hit) return hit;
