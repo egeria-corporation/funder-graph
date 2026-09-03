@@ -67,7 +67,7 @@ FROM read_parquet(
     'https://data.opengrants.io/funder-graph/latest/grants/filing_year=2024/part-0000.parquet' ],
   hive_partitioning = 1
 )
-WHERE funder_ein = '941156365'   -- The David and Lucile Packard Foundation
+WHERE funder_ein = '942278431'   -- The David and Lucile Packard Foundation
   AND amount_usd >= 250000
 ORDER BY amount_usd DESC
 LIMIT 25;
@@ -108,14 +108,14 @@ Note the `match_confidence >= 0.90` filter. It is there for a reason — see
 For people who would rather not write SQL. Nothing to install and no clone required:
 
 ```bash
-uvx funder-graph query --funder-ein 94-1156365 --min-amount 25000
+uvx funder-graph query --funder-ein 94-2278431 --min-amount 25000
 ```
 
 Output is a human-readable table with a source-and-vintage footer. Add `--json` for machines.
 
 ```bash
 # Every grant a foundation paid, filtered
-uvx funder-graph query --funder-ein 94-1156365 --min-amount 25000 --year 2023
+uvx funder-graph query --funder-ein 94-2278431 --min-amount 25000 --year 2023
 
 # Who funds this organization
 uvx funder-graph funders-of --recipient-ein 36-3673599 --min-confidence 0.90
@@ -124,13 +124,13 @@ uvx funder-graph funders-of --recipient-ein 36-3673599 --min-confidence 0.90
 uvx funder-graph similar --keyword "food security" --state CA --limit 50
 
 # A funder's profile: totals by year, top recipients, geographic concentration
-uvx funder-graph funder 94-1156365
+uvx funder-graph funder 94-2278431
 
 # What dataset am I actually querying
 uvx funder-graph dataset info
 
 # Pin a version so your analysis is reproducible
-uvx funder-graph --dataset-version 2026.08.0 query --funder-ein 94-1156365
+uvx funder-graph --dataset-version 2026.08.0 query --funder-ein 94-2278431
 ```
 
 EINs are accepted with or without the dash. Internally they are stored as nine digits, zero-padded,

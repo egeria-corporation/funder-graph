@@ -1,6 +1,6 @@
 /**
  * One canonical URL per entity, keyed on EIN: nine digits, no dash. Every other form a
- * request arrives in - "94-1156365", a slug suffix, leading zeros dropped by a spreadsheet -
+ * request arrives in - "94-2278431", a slug suffix, leading zeros dropped by a spreadsheet -
  * is normalized and redirected, because two URLs serving one organization splits the ranking
  * signal, and that is the most common way a site like this quietly underperforms.
  */
@@ -15,14 +15,14 @@ export function canonicalEin(raw: string): string | null {
   return nine;
 }
 
-/** "941156365" -> "94-1156365", the form people recognise on paper. */
+/** "942278431" -> "94-2278431", the form people recognise on paper. */
 export function displayEin(ein: string): string {
   return `${ein.slice(0, 2)}-${ein.slice(2)}`;
 }
 
 /**
  * Whether a path segment already is the canonical form. A slug after it
- * (`/funders/941156365/packard-foundation`) is handled by the route, which only ever
+ * (`/funders/942278431/packard-foundation`) is handled by the route, which only ever
  * takes the first segment.
  */
 export function isCanonical(segment: string): boolean {

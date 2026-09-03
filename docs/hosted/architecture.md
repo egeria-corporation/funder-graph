@@ -76,7 +76,7 @@ r2://opengrants-data/funder-graph/     # bucket opengrants-data, custom domain d
     grants/filing_year=2020/...
     ...
     manifest.json
-    funders/941156365.json                      # precomputed per-funder render payload
+    funders/942278431.json                      # precomputed per-funder render payload
     funders/131684331.json
     recipients/363673599.json                   # precomputed per-recipient payload
     sitemaps/sitemap-index.xml
@@ -168,14 +168,14 @@ dataset.
 ## Request path
 
 ```
-GET /funders/94-1156365
-  ├─ normalize EIN → 941156365; if the request form was not canonical, 301 to the canonical URL
+GET /funders/94-2278431
+  ├─ normalize EIN → 942278431; if the request form was not canonical, 301 to the canonical URL
   ├─ read vintage from KV → "2026.08.0"
   ├─ check Cache API with key `${url}?v=2026.08.0`
   │    hit  → return, revalidate in background via ctx.waitUntil
   │    miss → continue
   ├─ D1: SELECT ... FROM funders WHERE ein = ?   (404 page if absent)
-  ├─ R2: GET 2026.08.0/funders/941156365.json
+  ├─ R2: GET 2026.08.0/funders/942278431.json
   ├─ render full HTML server-side, including JSON-LD
   ├─ if OPENGRANTS_API_KEY is bound: fetch open opportunities, wrapped so any failure
   │    degrades to the un-enriched page; mark enriched content "— live from OpenGrants"
@@ -206,8 +206,8 @@ with JavaScript disabled sees the complete grant list, which is the entire reaso
 | `/llms.txt` | What this dataset is, how to use it, how to cite it |
 | `/robots.txt` | Allow all, point at the sitemap index |
 
-**One canonical URL per entity, keyed on EIN.** `/funders/941156365`, `/funders/94-1156365`, and any
-slug variant such as `/funders/94-1156365/packard-foundation` all 301 to the single canonical form.
+**One canonical URL per entity, keyed on EIN.** `/funders/942278431`, `/funders/94-2278431`, and any
+slug variant such as `/funders/94-2278431/packard-foundation` all 301 to the single canonical form.
 Two URLs serving the same organization splits the ranking signal and it is the most common way a
 site like this quietly underperforms. Pick one form, redirect everything else, emit
 `<link rel="canonical">` on every page.
@@ -252,7 +252,7 @@ These are not optional polish. The repos do not rank; these pages do.
    `answers.opengrants.io` for guidance, `opengrants.io` for open opportunities. Five sites that
    reference each other read as one authoritative body of work rather than five orphans.
 8. **Descriptive, factual titles.** "Grants paid by the David and Lucile Packard Foundation
-   (EIN 94-1156365) — 4,812 grants, $2.1B, 2019–2025". The title is a fact, not a pitch.
+   (EIN 94-2278431) — 4,812 grants, $2.1B, 2019–2025". The title is a fact, not a pitch.
 
 ---
 

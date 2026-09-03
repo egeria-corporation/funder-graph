@@ -91,7 +91,7 @@ Written by the ingest job, never at request time:
 r2://funder-graph/2026.08.0/
   grants/filing_year=*/**.parquet     # the public dataset, served directly to DuckDB users
   manifest.json
-  funders/941156365.json              # precomputed render payload, one per funder
+  funders/942278431.json              # precomputed render payload, one per funder
   funders/131684331/index.json        # chunked form for very large funders
   funders/131684331/2023.json
   recipients/363673599.json
@@ -177,8 +177,8 @@ cuts the site over to a new dataset atomically.
 | `/about`, `/methodology` | How the data is derived, the confidence tiers, the limitations |
 
 **One canonical URL per entity, keyed on EIN.** Canonical form is nine digits, no dash:
-`/funders/941156365`. `/funders/94-1156365` and any slug variant such as
-`/funders/94-1156365/packard-foundation` 301 to canonical. Emit `<link rel="canonical">` on every
+`/funders/942278431`. `/funders/94-2278431` and any slug variant such as
+`/funders/94-2278431/packard-foundation` 301 to canonical. Emit `<link rel="canonical">` on every
 page. Two URLs serving one organization splits the ranking signal, and it is the most common way a
 site like this quietly underperforms for a year before anyone diagnoses it.
 
@@ -191,13 +191,13 @@ entity pages, paginated, with no JavaScript required.
 ## 6. Request path
 
 ```
-GET /funders/94-1156365
-  ├─ normalize EIN → 941156365 → 301 (request form was non-canonical)
-GET /funders/941156365
+GET /funders/94-2278431
+  ├─ normalize EIN → 942278431 → 301 (request form was non-canonical)
+GET /funders/942278431
   ├─ vintage = KV.get('current_dataset_version')            // "2026.08.0"
   ├─ cache.match(`${url}?v=${vintage}`)  → hit: return, revalidate via ctx.waitUntil
   ├─ D1: SELECT * FROM funders WHERE ein = ?                 // miss → 404 page with search
-  ├─ R2: get(`${vintage}/funders/941156365.json`)            // or index.json if chunked
+  ├─ R2: get(`${vintage}/funders/942278431.json`)            // or index.json if chunked
   ├─ render complete HTML server-side, including JSON-LD
   ├─ if OPENGRANTS_API_KEY bound: fetch open opportunities, try/catch, degrade silently
   └─ Cache-Control: public, max-age=604800, stale-while-revalidate=86400
@@ -265,7 +265,7 @@ From `HOSTING.md`, and all of them are required. The repos do not rank; these pa
    `answers.opengrants.io` (guidance), `opengrants.io` (open opportunities). Five sites that
    reference each other read as one authoritative body of work rather than five orphans.
 8. **Titles and meta descriptions are facts, not pitches.** "Grants paid by the David and Lucile
-   Packard Foundation (EIN 94-1156365) — 4,812 grants totaling $2.1B, 2019–2025". Generate them from
+   Packard Foundation (EIN 94-2278431) — 4,812 grants totaling $2.1B, 2019–2025". Generate them from
    the data. Never ship a template with unfilled placeholders — a crawled page titled
    "Grants paid by undefined" is permanent embarrassment.
 9. **Match confidence is visible on the page.** Fuzzy-matched recipients are marked in the UI with a
@@ -301,7 +301,7 @@ pipeline publishes a new dataset version.
    stale one.
 4. Generate sitemaps, chunked at 50,000 URLs, gzipped, uploaded to R2 under the new version prefix.
 5. Smoke-test a fixed EIN list against the new version before cutover — at minimum: Packard
-   (94-1156365), Ford (13-1684331, chunked), Gates (56-2618866, largest), Silicon Valley Community
+   (94-2278431), Ford (13-1684331, chunked), Gates (56-2618866, largest), Silicon Valley Community
    Foundation (20-5205488, Schedule I filer), Feeding America (36-3673599, recipient page), plus one
    very small foundation and one known 404.
 6. **Only then** flip `current_dataset_version` in KV. That flip is the cutover and the only

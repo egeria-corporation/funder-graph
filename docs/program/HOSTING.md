@@ -46,7 +46,7 @@ This is where the category-ownership objective actually gets served. The repos d
 
 - **Server-rendered HTML with real content in the initial response.** No client-side data fetching for primary content. LLM crawlers and search engines must see the facts in the HTML.
 - **`schema.org` structured data** on every entity page — `Organization` / `NGO` with `taxID`, `address`, and `funder` relationships where known. This is what makes the pages machine-quotable.
-- **One canonical URL per entity**, keyed on EIN: `/funders/94-1156365`. Slug variants redirect to canonical. Never let two URLs serve the same organization.
+- **One canonical URL per entity**, keyed on EIN: `/funders/94-2278431`. Slug variants redirect to canonical. Never let two URLs serve the same organization.
 - **Sitemap index, chunked at 50,000 URLs per file**, generated from the dataset at ingest time and served from R2.
 - **`llms.txt` at the root** of every site describing what the dataset is, how it may be used, and how to cite it. Cheap to write, and it is increasingly how models decide what a site is for.
 - **Every page states its source and vintage inline** — "derived from the Form 990-PF filed 2025-11-14." Pages that show their work get cited; pages that assert bare numbers do not.

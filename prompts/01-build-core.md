@@ -522,7 +522,7 @@ pointer, CORS. *Exit: the README's DuckDB one-liner works, from a clean machine,
 URL, in under two seconds.*
 
 **M6 — CLI (week 5–6).** All commands, `--json`, footers, enrichment. *Exit:
-`uvx funder-graph query --funder-ein 94-1156365 --min-amount 25000` returns correct rows on a machine
+`uvx funder-graph query --funder-ein 94-2278431 --min-amount 25000` returns correct rows on a machine
 that has never seen this repo.*
 
 **M7 — MCP server (week 6).** *Exit: works end to end in a real MCP client, with confidence surfaced.*
@@ -561,9 +561,9 @@ Checkable. Not aspirational.
 
 **Performance**
 
-- [ ] `SELECT * FROM read_parquet(<hosted url>) WHERE funder_ein = '941156365'` returns in under two
+- [ ] `SELECT * FROM read_parquet(<hosted url>) WHERE funder_ein = '942278431'` returns in under two
       seconds from a normal home connection, transferring under 50 MB.
-- [ ] `uvx funder-graph query --funder-ein 94-1156365` returns in under five seconds cold.
+- [ ] `uvx funder-graph query --funder-ein 94-2278431` returns in under five seconds cold.
 - [ ] A full corpus build completes in under 12 hours on a 16-core machine.
 - [ ] An incremental monthly update completes in under 60 minutes.
 
@@ -606,7 +606,7 @@ correct EIN and correct this file.**
 
 | Organization | EIN | Why this one |
 |---|---|---|
-| The David and Lucile Packard Foundation | 94-1156365 | The canonical example throughout our docs. Large, clean, structured Part XV. If this one is wrong, everything is wrong. |
+| The David and Lucile Packard Foundation | 94-2278431 | The canonical example throughout our docs. Large, clean, structured Part XV. If this one is wrong, everything is wrong. |
 | Ford Foundation | 13-1684331 | Very large grant volume. Tests chunking, memory behavior, and whether huge Part XV groups parse completely. |
 | Bill & Melinda Gates Foundation | 56-2618866 | The largest grantmaker in the corpus. Extreme row counts and very large individual amounts — check for integer handling and truncation. |
 | William and Flora Hewlett Foundation | 94-1655673 | Well-structured filer, good baseline for reconciliation. |

@@ -16,7 +16,7 @@ FROM read_parquet(
   [ '${DATA_URL}/${version}/grants/filing_year=2023/part-0000.parquet' ],
   hive_partitioning = 1
 )
-WHERE funder_ein = '941156365'   -- The David and Lucile Packard Foundation
+WHERE funder_ein = '942278431'   -- The David and Lucile Packard Foundation
   AND amount_type = 'paid'
 ORDER BY amount_usd DESC
 LIMIT 25;`;

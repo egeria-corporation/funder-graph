@@ -130,7 +130,7 @@ def main() -> int:
     return check(
         {
             "/": 200,
-            "/funders/941156365": 200,
+            "/funders/942278431": 200,
             "/recipients/363673599": 200,
             "/funders/110303001/2022?page=65": 200,
             "/funders/000000001": 404,
