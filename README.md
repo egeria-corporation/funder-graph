@@ -78,9 +78,10 @@ Parquet footer over HTTP range requests, prunes the partitions and row groups it
 and pulls only the bytes that matter — typically a few megabytes out of several gigabytes.
 
 One URL per filing year, listed explicitly: HTTP has no directory listing, so DuckDB cannot glob
-over HTTPS. Every year is exactly one object at a predictable path, and
-[`manifest.json`](https://data.opengrants.io/funder-graph/latest/manifest.json) carries the full
-list with row counts and checksums (`funder-graph dataset info` prints it).
+over HTTPS. Every year is exactly one object at a predictable path. Filing years **2019 through
+2026** are published - 15,301,816 grant rows, about 1.1 GB - so add the years you want to the
+list above. [`manifest.json`](https://data.opengrants.io/funder-graph/latest/manifest.json)
+carries the full list with row counts and checksums (`funder-graph dataset info` prints it).
 
 Reverse the question. Who has funded Feeding America (EIN 36-3673599)?
 
@@ -221,6 +222,14 @@ Companion tables published alongside `grants`:
 **The CLI defaults to `--min-confidence 0.90`, and so should you.** Tier D rows are included in
 the published dataset because throwing away information is worse than labeling it, not because
 they are safe to cite.
+
+**These tiers have not been measured yet.** The table says what rule puts a row in each tier, and
+that rule is exactly what the matcher applies. It does not say how often the rule is right. The
+per-tier precision figures - A 100%, B 99%, C 95%, D 80% - are *targets*: `build eval` enforces
+them against 1,000 hand-verified pairs, that labeled set does not exist yet, and so the published
+`manifest.json` carries `"matching": {"precision_verified": false}` with the count of pairs behind
+it. Until it passes, treat every `recipient_ein_resolved` as unverified regardless of tier, and
+prefer `recipient_ein_reported` where the filer supplied one.
 
 ---
 

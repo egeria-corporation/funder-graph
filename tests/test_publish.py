@@ -15,6 +15,7 @@ from funder_graph.pipeline.publish import (
     DirUploader,
     Manifest,
     PublishError,
+    matching_status,
     stage,
     upload,
 )
@@ -29,6 +30,38 @@ def parquet_dir(tmp_path: Path) -> Path:
     write_shard(records(BRODERICK) + records(HARDSHIP), out, 2023, 1)
     write_shard(records(BRODERICK, filing_year=2024), out, 2024, 0)
     return out
+
+
+class TestMatchingStatus:
+    def test_an_unlabelled_matcher_publishes_a_notice_and_no_measurement(self) -> None:
+        # match_tiers alone reads as a measurement. Publishing it beside nothing is the
+        # failure the precision gate exists to prevent, and this command does not enforce
+        # that gate - it only warns - so the manifest has to say so itself.
+        s = matching_status(0, 1000, {"A": 1.0, "B": 0.99})
+        assert s["precision_verified"] is False
+        assert s["hand_labeled_pairs"] == 0
+        assert s["tier_precision_measured"] is None
+        assert s["tier_precision_targets"] == {"A": 1.0, "B": 0.99}
+        assert "not been scored" in s["notice"]
+
+    def test_a_full_labelled_set_carries_no_notice(self) -> None:
+        s = matching_status(1000, 1000, {"A": 1.0})
+        assert s["precision_verified"] is True and s["notice"] is None
+
+    def test_the_status_reaches_the_published_manifest(self, tmp_path: Path) -> None:
+        parquet = tmp_path / "parquet"
+        write_shard(records(BRODERICK), parquet, 2023, 0)
+        m = stage(
+            parquet,
+            tmp_path / "publish",
+            matching=matching_status(0, 1000, {"A": 1.0}),
+        )
+        assert m.matching["precision_verified"] is False
+        written = json.loads(
+            (tmp_path / "publish" / m.dataset_version / "manifest.json").read_text(encoding="utf-8")
+        )
+        assert written["matching"]["hand_labeled_pairs"] == 0
+        assert "not been scored" in written["matching"]["notice"]
 
 
 class TestStage:

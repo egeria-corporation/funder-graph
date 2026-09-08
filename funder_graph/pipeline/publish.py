@@ -69,6 +69,10 @@ class Manifest:
     files: list[PublishedFile]
     rows: dict[str, int] = field(default_factory=dict)  # total and by amount_type
     match_tiers: dict[str, int] = field(default_factory=dict)
+    # How far the tiers above can be trusted. Without it a reader sees a tier histogram and
+    # reasonably infers the tiers were measured; they are targets until the labelled set
+    # exists. See ``matching_status``.
+    matching: dict = field(default_factory=dict)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=2, sort_keys=False) + "\n"
@@ -100,12 +104,39 @@ def _list(paths: list[Path]) -> str:
     return "[" + ", ".join(f"'{p.as_posix()}'" for p in paths) + "]"
 
 
+MATCHING_NOTICE = (
+    "Recipient EINs are assigned by an automated matcher and labelled A-D by confidence. "
+    "Those labels have not been scored against a hand-verified sample of the required size, "
+    "so the per-tier targets in this manifest are goals, not measurements. Treat every "
+    "recipient EIN as unverified, and see match_tier on each row before relying on one."
+)
+
+
+def matching_status(hand_labeled_pairs: int, required: int, targets: dict[str, float]) -> dict:
+    """What the published manifest says about how far its match tiers can be trusted.
+
+    A tier histogram with nothing beside it reads as a measurement. This says plainly how
+    many hand-verified pairs back it - today, none - so no reader can mistake a target for
+    a result.
+    """
+    verified = hand_labeled_pairs >= required
+    return {
+        "hand_labeled_pairs": hand_labeled_pairs,
+        "hand_labeled_pairs_required": required,
+        "tier_precision_targets": dict(targets),
+        "tier_precision_measured": None,
+        "precision_verified": verified,
+        "notice": None if verified else MATCHING_NOTICE,
+    }
+
+
 def stage(
     parquet_dir: Path,
     staging_dir: Path,
     *,
     dataset_version: str | None = None,
     bmf_vintage: str | None = None,
+    matching: dict | None = None,
     now: datetime | None = None,
 ) -> Manifest:
     """Merge each year's shards into one sorted object under ``staging_dir/<version>/``.
@@ -166,6 +197,7 @@ def stage(
         files=files,
         rows={"total": sum(f.rows for f in files), **{k: n for k, n in totals}},
         match_tiers={k or "null": n for k, n in tiers},
+        matching=matching or {},
     )
     (root / "manifest.json").write_text(manifest.to_json(), encoding="utf-8")
     return manifest

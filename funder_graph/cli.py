@@ -617,10 +617,12 @@ def build_publish(
         DirUploader,
         PublishError,
         WranglerUploader,
+        matching_status,
         stage,
         upload,
     )
     from funder_graph.resolve.bmf import bmf_vintage
+    from funder_graph.resolve.evaluate import MIN_LABELED, PRECISION_TARGETS, load_labeled
 
     work = work_dir or Path(os.environ.get("FUNDER_GRAPH_WORK_DIR", "build"))
     vintage = None
@@ -631,9 +633,20 @@ def build_publish(
             vintage = bmf_vintage(conn)
         finally:
             conn.close()
+    # The gate below is advisory - this command does not refuse to run under it - so the
+    # manifest has to carry how far its own match tiers can be trusted.
+    try:
+        pairs = len(load_labeled(LABELED_DEFAULT))
+    except (FileNotFoundError, OSError):
+        pairs = 0
+    matching = matching_status(pairs, MIN_LABELED, PRECISION_TARGETS)
     try:
         manifest = stage(
-            work / "parquet", work / "publish", dataset_version=dataset_version, bmf_vintage=vintage
+            work / "parquet",
+            work / "publish",
+            dataset_version=dataset_version,
+            bmf_vintage=vintage,
+            matching=matching,
         )
     except PublishError as exc:
         _emit(f"STOP: {exc}")
@@ -644,6 +657,11 @@ def build_publish(
         f"{len(manifest.files)} objects, years {manifest.filing_years}, tiers {tiers}; "
         f"concordance {manifest.concordance_version}, BMF {manifest.bmf_vintage}"
     )
+    if not matching["precision_verified"]:
+        _emit(
+            f"  NOTICE: {matching['hand_labeled_pairs']:,} of {MIN_LABELED:,} hand-labeled pairs; "
+            "match tiers publish as unverified"
+        )
     for url in manifest.urls(prefix=prefix or DEFAULT_PREFIX):
         _emit(f"  {url}")
     if dry_run:
