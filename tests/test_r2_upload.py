@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from funder_graph.pipeline import r2_upload
 from funder_graph.pipeline.r2_upload import (
     MissingCredentials,
     R2Config,
@@ -124,6 +125,42 @@ class TestUploadTree:
         assert result.uploaded == 4 and [k for k, _ in result.failed] == [bad]
         assert client.attempts[bad] == 3
         assert "ConnectionError" in result.failed[0][1]
+
+    def test_a_failure_is_reported_as_it_happens_not_only_in_the_summary(self, tree: Path) -> None:
+        # A run of a million objects that degrades after five hours has to say so while it
+        # is still running; the returned UploadResult arrives far too late to act on.
+        bad = "funder-graph/2026.09.0/recipients/333.json"
+        live: list[tuple[str, str]] = []
+        result = upload_tree(
+            FakeClient(fail_keys={bad}),
+            "b",
+            tree,
+            "funder-graph/2026.09.0",
+            workers=2,
+            skip_unchanged=False,
+            on_failure=lambda key, error: live.append((key, error)),
+        )
+        assert [k for k, _ in live] == [bad]
+        assert "ConnectionError" in live[0][1]
+        assert live == result.failed
+
+    def test_an_object_missing_from_the_bucket_is_never_hashed(
+        self, tree: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # `have.get(key) == _md5(path)` evaluates both sides, so a first upload hashes
+        # every byte it is about to send for a comparison that cannot match.
+        f = tree / "funders" / "111.json"
+        hashed: list[Path] = []
+        real = r2_upload._md5
+        monkeypatch.setattr(r2_upload, "_md5", lambda path: (hashed.append(path), real(path))[1])
+        upload_tree(
+            FakeClient(existing={"funder-graph/2026.09.0/funders/111.json": "stale"}),
+            "b",
+            tree,
+            "funder-graph/2026.09.0",
+            workers=2,
+        )
+        assert hashed == [f], "only the one key the bucket already holds"
 
 
 class TestConfigAndUploader:

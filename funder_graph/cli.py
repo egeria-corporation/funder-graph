@@ -12,6 +12,7 @@ import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 
 import click
@@ -749,6 +750,7 @@ def build_site_upload(
     from funder_graph.pipeline.publish import DEFAULT_BUCKET, DEFAULT_PREFIX
     from funder_graph.pipeline.r2_upload import (
         MissingCredentials,
+        UploadResult,
         credentials,
         make_client,
         plan,
@@ -767,10 +769,36 @@ def build_site_upload(
     if dry_run:
         return
     try:
-        client = make_client(credentials(env_file))
+        # More connections than workers: a pool sized exactly to the worker count makes
+        # every connection recycle a queue.
+        client = make_client(credentials(env_file), pool_connections=workers + 16)
     except MissingCredentials as exc:
         _emit(f"STOP: {exc}")
         sys.exit(3)
+
+    # A million-object upload runs for hours. Both callbacks below exist so that a run
+    # which degrades says so at the time, in the log, rather than in a summary printed
+    # after the degradation has already cost the whole evening.
+    seen: dict[str, int] = {}
+
+    def on_failure(key: str, error: str) -> None:
+        signature = error.splitlines()[0][:100]
+        n = seen[signature] = seen.get(signature, 0) + 1
+        if n <= 5 or n % 100 == 0:
+            _emit(f"  [{time.strftime('%H:%M:%S')}] FAILED x{n} {key}: {signature}")
+
+    started = time.monotonic()
+
+    def on_progress(i: int, n: int, r: UploadResult) -> None:
+        elapsed = time.monotonic() - started
+        rate = i / elapsed if elapsed else 0.0
+        eta = (n - i) / rate / 3600 if rate else 0.0
+        _emit(
+            f"  [{time.strftime('%H:%M:%S')}] {i:,}/{n:,}  uploaded {r.uploaded:,}  "
+            f"skipped {r.skipped:,}  failed {len(r.failed)}  "
+            f"{rate:,.0f}/s  {r.bytes_sent / 1e6:,.0f} MB  ETA {eta:.1f}h"
+        )
+
     result = upload_tree(
         client,
         bucket or DEFAULT_BUCKET,
@@ -779,16 +807,15 @@ def build_site_upload(
         only=only or None,
         workers=workers,
         skip_unchanged=not no_skip,
-        progress=lambda i, n, r: _emit(
-            f"  {i:,}/{n:,}  uploaded {r.uploaded:,}  skipped {r.skipped:,}  failed {len(r.failed)}"
-        ),
+        progress=on_progress,
+        on_failure=on_failure,
     )
     _emit(
         f"done: {result.uploaded:,} uploaded ({result.bytes_sent / 1e6:,.0f} MB), "
         f"{result.skipped:,} unchanged, {len(result.failed)} failed"
     )
-    for key, err in result.failed[:10]:
-        _emit(f"  FAILED {key}: {err}")
+    for signature, n in sorted(seen.items(), key=lambda kv: -kv[1]):
+        _emit(f"  {n:,} x {signature}")
     if result.failed:
         sys.exit(1)
 

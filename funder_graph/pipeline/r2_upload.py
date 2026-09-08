@@ -23,11 +23,15 @@ from __future__ import annotations
 
 import hashlib
 import os
+import time
 from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
+
+ATTEMPTS = 3
+RETRY_BACKOFF_SECONDS = 0.5
 
 CONTENT_TYPES = {
     ".json": "application/json",
@@ -117,7 +121,16 @@ class S3Client(Protocol):
     def get_paginator(self, name: str) -> Any: ...
 
 
-def make_client(cfg: R2Config) -> S3Client:
+def make_client(cfg: R2Config, *, pool_connections: int = 64) -> S3Client:
+    """An S3 client for R2. ``pool_connections`` must exceed the uploader's worker count.
+
+    Retries are ``standard``, not ``adaptive``, deliberately. Adaptive mode adds a
+    *client-side* rate limiter shared by every thread: one burst of throttled responses
+    collapses its token bucket and it recovers over many minutes. A 1.1M-object run took a
+    burst of failures at 130,000 objects, fell from ~127 objects/s to ~7, and never came
+    back. Standard mode retries the request that was throttled without penalising the
+    other 63 workers.
+    """
     import boto3
     from botocore.config import Config
 
@@ -128,8 +141,13 @@ def make_client(cfg: R2Config) -> S3Client:
         aws_secret_access_key=cfg.secret_access_key,
         region_name="auto",
         config=Config(
-            max_pool_connections=64,
-            retries={"max_attempts": 6, "mode": "adaptive"},
+            max_pool_connections=pool_connections,
+            retries={"max_attempts": 6, "mode": "standard"},
+            # Without these a hung connection holds a worker for botocore's 60s default on
+            # connect as well as read, which on a 1M-object run is indistinguishable from
+            # a stall.
+            connect_timeout=15,
+            read_timeout=60,
             s3={"addressing_style": "path"},
         ),
     )
@@ -203,16 +221,24 @@ def upload_tree(
     workers: int = 32,
     skip_unchanged: bool = True,
     progress: Callable[[int, int, UploadResult], None] | None = None,
+    on_failure: Callable[[str, str], None] | None = None,
 ) -> UploadResult:
-    """Upload every file under ``root`` to ``bucket`` at ``prefix/...``, in parallel."""
+    """Upload every file under ``root`` to ``bucket`` at ``prefix/...``, in parallel.
+
+    ``on_failure(key, error)`` fires the moment an object gives up, so a run that degrades
+    after five hours says why while it is still running rather than only in its summary.
+    """
     items = plan(root, prefix, only=only)
     result = UploadResult()
     have = existing_etags(client, bucket, prefix) if skip_unchanged else {}
 
     def one(item: Planned) -> tuple[str, str | None, int]:
-        if skip_unchanged and have.get(item.key) == _md5(item.path):
+        # The membership test comes first: ``have.get(key) == _md5(path)`` evaluates both
+        # sides, so a first upload of a million objects hashes every one of them against a
+        # key that is not there.
+        if skip_unchanged and item.key in have and have[item.key] == _md5(item.path):
             return item.key, "skip", 0
-        for attempt in range(3):
+        for attempt in range(ATTEMPTS):
             try:
                 client.upload_file(
                     str(item.path), bucket, item.key, ExtraArgs={"ContentType": item.content_type}
@@ -220,8 +246,11 @@ def upload_tree(
                 return item.key, None, item.path.stat().st_size
             except Exception as error:
                 last = f"{type(error).__name__}: {error}"
-                if attempt == 2:
+                if attempt == ATTEMPTS - 1:
                     return item.key, last, 0
+                # Back off between our own attempts; retrying a throttled request instantly
+                # is how a burst of 429s becomes a sustained one.
+                time.sleep(RETRY_BACKOFF_SECONDS * (2**attempt))
         return item.key, "unreachable", 0
 
     with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
@@ -233,6 +262,8 @@ def upload_tree(
                 result.skipped += 1
             else:
                 result.failed.append((key, status))
+                if on_failure:
+                    on_failure(key, status)
             if progress and (i % 500 == 0 or i == len(items)):
                 progress(i, len(items), result)
     return result
