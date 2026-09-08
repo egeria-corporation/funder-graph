@@ -60,6 +60,7 @@ INSTALL httpfs; LOAD httpfs;
 SELECT recipient_name_raw,
        recipient_state,
        amount_usd,
+       amount_type,      -- 'paid' or 'approved_future'; a recipient can have both in one year
        tax_year,
        grant_purpose
 FROM read_parquet(
@@ -73,7 +74,7 @@ ORDER BY amount_usd DESC
 LIMIT 25;
 ```
 
-That returns real rows in about a second. It does not download the dataset. DuckDB reads the
+That returns real rows in a few seconds. It does not download the dataset. DuckDB reads the
 Parquet footer over HTTP range requests, prunes the partitions and row groups it does not need,
 and pulls only the bytes that matter — typically a few megabytes out of several gigabytes.
 
@@ -94,12 +95,15 @@ FROM read_parquet(
 )
 WHERE recipient_ein_resolved = '363673599'
   AND match_confidence >= 0.90
+  AND amount_type = 'paid'   -- never sum across amount_type; see the schema table
 GROUP BY funder_name
 ORDER BY total DESC
 LIMIT 25;
 ```
 
-Note the `match_confidence >= 0.90` filter. It is there for a reason — see
+Note the two filters. `amount_type = 'paid'` keeps money actually paid out separate from money
+merely approved for future payment; without it this query overstates Feeding America's funding by
+6.3%, and some funders by far more. `match_confidence >= 0.90` is there for a reason — see
 [Data honesty](#data-honesty-read-this-before-you-cite-anything) below.
 
 ---
