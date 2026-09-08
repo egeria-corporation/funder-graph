@@ -99,6 +99,17 @@ class TestUploadTree:
         assert all(b == "opengrants-data" for _, b, _ in client.calls)
         assert seen[-1] == (5, 5)
 
+    def test_a_caller_supplied_plan_is_used_instead_of_walking_the_tree_again(
+        self, tree: Path
+    ) -> None:
+        # The CLI prints the object count before uploading, so it has already walked the
+        # tree; on a full version that walk is about nine minutes.
+        items = [i for i in plan(tree, "funder-graph/2026.09.0") if i.key.endswith("111.json")]
+        client = FakeClient()
+        result = upload_tree(client, "b", tree, "funder-graph/2026.09.0", workers=2, items=items)
+        assert result.uploaded == 1
+        assert [k for k, _, _ in client.calls] == ["funder-graph/2026.09.0/funders/111.json"]
+
     def test_skips_objects_whose_etag_matches_the_local_md5(self, tree: Path) -> None:
         f = tree / "funders" / "111.json"
         etag = hashlib.md5(f.read_bytes()).hexdigest()

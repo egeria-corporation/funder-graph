@@ -222,13 +222,18 @@ def upload_tree(
     skip_unchanged: bool = True,
     progress: Callable[[int, int, UploadResult], None] | None = None,
     on_failure: Callable[[str, str], None] | None = None,
+    items: list[Planned] | None = None,
 ) -> UploadResult:
     """Upload every file under ``root`` to ``bucket`` at ``prefix/...``, in parallel.
 
     ``on_failure(key, error)`` fires the moment an object gives up, so a run that degrades
     after five hours says why while it is still running rather than only in its summary.
+
+    ``items`` is a plan the caller has already built. Walking 1.1M payloads across 197,000
+    directories and stat-ing each one takes about nine minutes on NTFS, and a caller that
+    printed the object count first was paying for it twice before any byte moved.
     """
-    items = plan(root, prefix, only=only)
+    items = plan(root, prefix, only=only) if items is None else items
     result = UploadResult()
     have = existing_etags(client, bucket, prefix) if skip_unchanged else {}
 

@@ -825,6 +825,7 @@ def build_site_upload(
         skip_unchanged=not no_skip,
         progress=on_progress,
         on_failure=on_failure,
+        items=items,  # already walked, above; the walk is minutes on a full version
     )
     _emit(
         f"done: {result.uploaded:,} uploaded ({result.bytes_sent / 1e6:,.0f} MB), "
