@@ -13,7 +13,8 @@ const QUICKSTART = (version: string) => `INSTALL httpfs; LOAD httpfs;
 
 SELECT recipient_name_raw, recipient_state, amount_usd, tax_year, grant_purpose
 FROM read_parquet(
-  [ '${DATA_URL}/${version}/grants/filing_year=2023/part-0000.parquet' ],
+  [ '${DATA_URL}/${version}/grants/filing_year=2023/part-0000.parquet',
+    '${DATA_URL}/${version}/grants/filing_year=2024/part-0000.parquet' ],
   hive_partitioning = 1
 )
 WHERE funder_ein = '942278431'   -- The David and Lucile Packard Foundation
@@ -129,7 +130,16 @@ export const DataPage: FC<{ vintage: Vintage | null; version: string; canonical:
         Reverse the question with{" "}
         <code>WHERE recipient_ein_resolved = '363673599' AND match_confidence &gt;= 0.90</code> to
         see who has funded Feeding America. The confidence filter is there for a reason; see{" "}
-        <a href="/methodology#tiers">the tiers</a>.
+        <a href="/methodology#tiers">the tiers</a>. Add years by adding their URLs: the manifest
+        lists every one that exists.
+      </p>
+      <p class="prose">
+        <b>The tiers have not been measured yet.</b> Each one is a rule the matcher applies, and{" "}
+        <a href="/methodology#tiers">the methodology</a> says exactly what each rule is. How often a
+        rule is <i>right</i> is a separate question, answered by scoring the matcher against a
+        hand-verified sample, and that sample does not exist yet — which is why the manifest
+        publishes <code>"precision_verified": false</code>. Until it does, treat a resolved
+        recipient EIN as a lead rather than a fact, whatever its tier.
       </p>
     </section>
 
@@ -223,6 +233,12 @@ export const Methodology: FC<{ canonical: string }> = ({ canonical }) => (
           </li>
         ))}
       </ul>
+      <p>
+        None of these tiers has been scored against a hand-verified sample yet. The list above is
+        what each tier <i>means</i>; it is not a measurement of how often the tier is correct. The
+        published manifest carries <code>"precision_verified": false</code> and the count of
+        hand-labelled pairs behind it, which is currently zero.
+      </p>
       <p>
         The matcher blocks candidates by exact normalized name, by state and first name token, by
         ZIP code and first token, and by state and phonetic key; scores the survivors on name
