@@ -110,6 +110,26 @@ class TestUploadTree:
         assert result.uploaded == 1
         assert [k for k, _, _ in client.calls] == ["funder-graph/2026.09.0/funders/111.json"]
 
+    def test_the_bucket_listing_is_announced_before_the_first_object_moves(
+        self, tree: Path
+    ) -> None:
+        # Listing a full prefix is minutes; a caller that starts its throughput clock
+        # before it reports the listing as slow uploading.
+        listed: list[int] = []
+        order: list[str] = []
+        client = FakeClient(existing={"funder-graph/2026.09.0/funders/111.json": "stale"})
+        upload_tree(
+            client,
+            "b",
+            tree,
+            "funder-graph/2026.09.0",
+            workers=1,
+            on_listed=lambda n: (listed.append(n), order.append("listed")),
+            progress=lambda *_: order.append("progress"),
+        )
+        assert listed == [1]
+        assert order[0] == "listed", "before any object is processed"
+
     def test_skips_objects_whose_etag_matches_the_local_md5(self, tree: Path) -> None:
         f = tree / "funders" / "111.json"
         etag = hashlib.md5(f.read_bytes()).hexdigest()

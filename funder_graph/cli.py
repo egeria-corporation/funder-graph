@@ -803,7 +803,18 @@ def build_site_upload(
         if n <= 5 or n % 100 == 0:
             _emit(f"  [{time.strftime('%H:%M:%S')}] FAILED x{n} {key}: {signature}")
 
+    # Reset by on_listed: enumerating the bucket happens inside upload_tree and takes
+    # minutes on a full prefix, and counting it as upload time reports a rate and an ETA
+    # that are wrong in the pessimistic direction for the first several thousand objects.
     started = time.monotonic()
+
+    def on_listed(have: int) -> None:
+        nonlocal started
+        _emit(
+            f"  [{time.strftime('%H:%M:%S')}] bucket holds {have:,} objects under this prefix; "
+            f"listed in {time.monotonic() - started:,.0f}s"
+        )
+        started = time.monotonic()
 
     def on_progress(i: int, n: int, r: UploadResult) -> None:
         elapsed = time.monotonic() - started
@@ -825,6 +836,7 @@ def build_site_upload(
         skip_unchanged=not no_skip,
         progress=on_progress,
         on_failure=on_failure,
+        on_listed=on_listed,
         items=items,  # already walked, above; the walk is minutes on a full version
     )
     _emit(
