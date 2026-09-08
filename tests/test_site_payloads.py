@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -49,6 +50,33 @@ class TestStagedVersion:
             p.read_text(encoding="utf-8") for p in sorted((b.out_dir / "d1").glob("*.sql"))
         )
         assert "INSERT INTO dataset_vintage VALUES ('2026.09.1'" in vintage
+
+    def test_a_rebuild_deletes_payloads_it_no_longer_produces(
+        self, parquet_dir: Path, tmp_path: Path
+    ) -> None:
+        # Rebuilding a version writes into the same directory. Whatever the new build no
+        # longer produces used to survive there: rebuilding 2026.09.0 over the 2023-only
+        # release left 419 single-year funder payloads behind, uploaded and never served.
+        full = build_site(parquet_dir, None, tmp_path / "site")
+        out = full.out_dir
+        survivor = next(out.glob("funders/*.json"))
+        orphan = out / "funders" / "999999999.json"
+        orphan.write_text('{"stale": true}', encoding="utf-8")
+        nested = out / "funders" / "999999998" / "2019"
+        nested.mkdir(parents=True)
+        (nested / "p1.json").write_text("{}", encoding="utf-8")
+        old_time = orphan.stat().st_mtime - 3600
+        for p in (orphan, nested / "p1.json"):
+            os.utime(p, (old_time, old_time))
+
+        again = build_site(parquet_dir, None, tmp_path / "site")
+        assert again.out_dir == out
+        assert again.pruned == 2
+        assert not orphan.exists()
+        assert not nested.exists(), "and the directory it emptied"
+        assert survivor.exists(), "a payload the build still produces is rewritten, not removed"
+        manifest = json.loads((out / "site-manifest.json").read_text(encoding="utf-8"))
+        assert manifest["pruned"] == 2
 
     def test_without_an_override_the_parquet_still_decides(
         self, parquet_dir: Path, tmp_path: Path

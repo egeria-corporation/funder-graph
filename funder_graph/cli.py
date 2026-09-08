@@ -727,6 +727,7 @@ def build_site_cmd(
         f"site {b.dataset_version}: {b.funders:,} funders ({b.funders_chunked:,} chunked), "
         f"{b.recipients:,} recipients, {b.grant_rows:,} grant rows"
         + (f" - sample of the top {limit:,} funders" if limit else "")
+        + (f", {b.pruned:,} stale payloads pruned" if b.pruned else "")
         + f" -> {b.out_dir}"
     )
 

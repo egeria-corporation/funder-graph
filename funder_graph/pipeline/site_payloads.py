@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import time
 from collections import defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -60,6 +61,39 @@ class SiteBuild:
     recipients: int = 0
     grant_rows: int = 0
     limit: int | None = None
+    pruned: int = 0
+
+
+MANIFEST_NAME = "site-manifest.json"
+
+
+def _prune_stale(out: Path, started: float, *, keep: set[Path]) -> int:
+    """Delete payloads this build did not write, and report how many there were.
+
+    ``build site`` writes into ``out_root/<version>/`` without clearing it, so a rebuild of
+    a version leaves behind every file the new build no longer produces. That is not
+    hypothetical: rebuilding 2026.09.0 over the 2023-only release left 419 funder payloads
+    whose funders had since become chunked, one of them the Packard Foundation's, each
+    still holding a single year. Nothing serves them - the index a build writes only ever
+    points at files that same build wrote - but they upload, and they stay in the bucket
+    looking like data.
+
+    Every file this build wrote has an mtime at or after ``started``, so anything older is
+    by definition not part of it. Call it once everything else is written; ``keep`` covers
+    the manifest, which is written last because it reports this count.
+    """
+    # One walk: a full version is 1.1M entries across 197,000 directories, and each pass
+    # over it costs minutes.
+    files, dirs = [], []
+    for entry in out.rglob("*"):
+        (dirs if entry.is_dir() else files).append(entry)
+    stale = [f for f in files if f not in keep and f.stat().st_mtime < started]
+    for f in stale:
+        f.unlink()
+    for d in sorted(dirs, reverse=True):  # deepest first, so a parent empties before its turn
+        if not any(d.iterdir()):
+            d.rmdir()
+    return len(stale)
 
 
 def _q(s: str | None) -> str:
@@ -552,6 +586,7 @@ def build_site(
             "CREATE VIEW bmf AS SELECT NULL::VARCHAR AS ein, NULL::VARCHAR AS name, NULL::VARCHAR AS city, "
             "NULL::VARCHAR AS state, NULL::VARCHAR AS ntee_cd, NULL::VARCHAR AS subsection WHERE FALSE"
         )
+    started = time.time()
     (stamped,) = conn.execute("SELECT any_value(dataset_version) FROM grants").fetchone()
     version = version or stamped
     built_at = (now or datetime.now(UTC)).isoformat(timespec="seconds")
@@ -590,8 +625,10 @@ def build_site(
     _write_sitemaps(
         out, {"funders": funder_urls, "recipients": recipient_urls, "browse": browse_urls}, lastmod
     )
+    # Last, so that every file this build means to keep already carries a fresh mtime.
+    build.pruned = _prune_stale(out, started, keep={out / MANIFEST_NAME})
     _write_json(
-        out / "site-manifest.json",
+        out / MANIFEST_NAME,
         {
             "dataset_version": version,
             "built_at": built_at,
@@ -600,6 +637,7 @@ def build_site(
             "recipients": build.recipients,
             "grant_rows": build.grant_rows,
             "sample_limit": limit,
+            "pruned": build.pruned,
             "d1_files": seq,
             "states": states,
         },
