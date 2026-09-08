@@ -1,5 +1,16 @@
 # The labeled evaluation set
 
+`labeling-sample.csv` is the **worksheet**: 1,200 unlabeled rows drawn stratified across
+tiers, with the matcher's own answer in the `matcher_*` columns so a verifier can see what
+it decided and check it rather than start cold. Fill in `expected_ein`, `verified_by`,
+`verified_on` and `source`, then move completed rows into `labeled_pairs.csv`. Do not point
+`build eval` at this file: it requires a verifier on every row and will refuse a blank one.
+
+It is committed rather than left in `build/`, which is gitignored, because regenerating it
+means rebuilding the whole pipeline from 27 GB of IRS archives - and because the work it
+represents is human hours that should be reviewable in a pull request.
+
+
 `labeled_pairs.csv` is the set of recipient strings with hand-verified EINs that the matcher
 is scored against (`funder-graph build eval`). The build spec requires at least **1,000**
 pairs, sampled stratified across tiers, and treats the per-tier precision targets as gates:
