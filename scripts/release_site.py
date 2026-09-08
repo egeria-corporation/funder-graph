@@ -5,7 +5,8 @@
 
 Steps, each gated on the previous one's exit code, each logged to build/logs/release-<step>.log:
 
-1. ingest   `build site` over every filing year in build/parquet, BMF from build/bmf/*.csv
+1. ingest   `build site` over every filing year in build/parquet, BMF from build/bmf/*.csv,
+            stamped with --version so a new version is staged rather than the live one rebuilt
 2. upload   `build site-upload` through the R2 S3 API; unchanged objects are skipped
 3. reseed   site/scripts/reseed_remote.py: replace the D1 index, mark current, stamp the cache
 4. check    five live URLs must answer as expected
@@ -86,7 +87,20 @@ def main() -> int:
         return 2
     cli = [str(PY), "-m", "funder_graph.cli"]
     if not args.skip_ingest:
-        cmd = [*cli, "build", "site", "--work-dir", "build", "--bmf-csv", "build/bmf"]
+        # --dataset-version so that --version means one thing for all four steps. Naming a
+        # version the parquet does not carry builds the next release beside the live one,
+        # which is the only way an upload that dies leaves the site as it found it.
+        cmd = [
+            *cli,
+            "build",
+            "site",
+            "--work-dir",
+            "build",
+            "--bmf-csv",
+            "build/bmf",
+            "--dataset-version",
+            args.version,
+        ]
         if args.years:
             cmd += ["--years", args.years]
         if run("ingest", cmd):

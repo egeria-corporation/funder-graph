@@ -690,10 +690,25 @@ def build_publish(
     default=None,
     help="Read the BMF from these CSVs (a glob, e.g. build/bmf/eo*.csv) instead of the state file.",
 )
+@click.option(
+    "--dataset-version",
+    default=None,
+    show_default="the version stamped in the parquet",
+    help="Build under this version instead, e.g. 2026.09.1, to stage a release beside the live one.",
+)
 def build_site_cmd(
-    work_dir: Path | None, years: str | None, limit: int | None, bmf_csv: str | None
+    work_dir: Path | None,
+    years: str | None,
+    limit: int | None,
+    bmf_csv: str | None,
+    dataset_version: str | None,
 ) -> None:
-    """Write the hosted site's payloads, D1 rows and sitemaps under build/site/<version>/."""
+    """Write the hosted site's payloads, D1 rows and sitemaps under build/site/<version>/.
+
+    Pass --dataset-version to build the next version rather than rewriting the live one:
+    the site reads payloads at <prefix>/<version>/, so a staged version can be uploaded in
+    full and then made current in one step, and a run that dies leaves the site untouched.
+    """
     from funder_graph.pipeline.download import parse_years
     from funder_graph.pipeline.site_payloads import build_site
 
@@ -706,6 +721,7 @@ def build_site_cmd(
         years=wanted,
         limit=limit,
         bmf_csv=bmf_csv,
+        version=dataset_version,
     )
     _emit(
         f"site {b.dataset_version}: {b.funders:,} funders ({b.funders_chunked:,} chunked), "

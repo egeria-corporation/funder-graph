@@ -513,8 +513,17 @@ def build_site(
     limit: int | None = None,
     now: datetime | None = None,
     bmf_csv: str | None = None,
+    version: str | None = None,
 ) -> SiteBuild:
-    """Write every payload for the dataset in ``parquet_dir`` under ``out_root/<version>/``."""
+    """Write every payload for the dataset in ``parquet_dir`` under ``out_root/<version>/``.
+
+    ``version`` overrides the one stamped in the parquet, and is how a release is built
+    beside the live one instead of on top of it. The Worker resolves the current version
+    from KV and reads payloads at ``<prefix>/<version>/...``, so building N+1, uploading
+    it, and then flipping the pointer is an atomic cutover that a half-finished upload
+    cannot break. Rebuilding the live version in place - the default - means every object
+    the uploader replaces is replaced underneath live traffic.
+    """
     files = _grant_files(parquet_dir, years)
     if not files:
         raise FileNotFoundError(f"no grants partitions under {parquet_dir}")
@@ -543,7 +552,8 @@ def build_site(
             "CREATE VIEW bmf AS SELECT NULL::VARCHAR AS ein, NULL::VARCHAR AS name, NULL::VARCHAR AS city, "
             "NULL::VARCHAR AS state, NULL::VARCHAR AS ntee_cd, NULL::VARCHAR AS subsection WHERE FALSE"
         )
-    (version,) = conn.execute("SELECT any_value(dataset_version) FROM grants").fetchone()
+    (stamped,) = conn.execute("SELECT any_value(dataset_version) FROM grants").fetchone()
+    version = version or stamped
     built_at = (now or datetime.now(UTC)).isoformat(timespec="seconds")
     out = out_root / version
     build = SiteBuild(version, built_at, out, limit=limit)

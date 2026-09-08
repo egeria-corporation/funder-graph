@@ -32,6 +32,31 @@ def _sum(parquet_dir: Path, ein: str, amount_type: str) -> tuple[int, int]:
     return int(total), int(n)
 
 
+class TestStagedVersion:
+    def test_a_version_override_names_the_directory_and_every_payload(
+        self, parquet_dir: Path, tmp_path: Path
+    ) -> None:
+        # Building N+1 beside the live N is what makes a release a cutover rather than an
+        # overwrite, so the override has to reach the payloads too - not just the folder.
+        b = build_site(parquet_dir, None, tmp_path / "site", version="2026.09.1")
+        assert b.dataset_version == "2026.09.1"
+        assert b.out_dir == tmp_path / "site" / "2026.09.1"
+        payload = json.loads((b.out_dir / "funders" / "846725611.json").read_text(encoding="utf-8"))
+        assert payload["dataset_version"] == "2026.09.1"
+        manifest = json.loads((b.out_dir / "site-manifest.json").read_text(encoding="utf-8"))
+        assert manifest["dataset_version"] == "2026.09.1"
+        vintage = "".join(
+            p.read_text(encoding="utf-8") for p in sorted((b.out_dir / "d1").glob("*.sql"))
+        )
+        assert "INSERT INTO dataset_vintage VALUES ('2026.09.1'" in vintage
+
+    def test_without_an_override_the_parquet_still_decides(
+        self, parquet_dir: Path, tmp_path: Path
+    ) -> None:
+        b = build_site(parquet_dir, None, tmp_path / "site")
+        assert b.dataset_version and b.dataset_version != "2026.09.1"
+
+
 class TestFunderPayloads:
     def test_totals_agree_with_the_parquet_and_are_never_summed_across_types(
         self, parquet_dir: Path, tmp_path: Path
