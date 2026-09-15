@@ -327,11 +327,9 @@ export const About: FC<{ canonical: string }> = ({ canonical }) => (
         the e-file corpus stewarded by GivingTuesday's data commons.
       </p>
       <p>
-        It is one of five sibling sites that reference the same organizations by EIN:{" "}
+        It has sibling sites that reference the same organizations by EIN:{" "}
         <a href="https://check.opengrants.io">check.opengrants.io</a> for exempt status and filing
-        health, <a href="https://awards.opengrants.io">awards.opengrants.io</a> for federal awards,{" "}
-        <a href="https://answers.opengrants.io">answers.opengrants.io</a> for guidance, and{" "}
-        <a href="https://opengrants.io">opengrants.io</a> for open opportunities.
+        health, and <a href="https://opengrants.io">opengrants.io</a> for open opportunities.
       </p>
       <p>
         No accounts, no tracking beyond ordinary web request logs, no write path. It is a read-only

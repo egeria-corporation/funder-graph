@@ -223,13 +223,19 @@ export const Page: FC<PropsWithChildren<HeadProps>> = ({
 
 export const Disclosure: FC = () => <p class="disclosure">{DISCLOSURE}</p>;
 
-/** Links to the same EIN on the sibling sites. Five sites that reference each other read as one. */
+/**
+ * Links to the same EIN on the sibling sites that actually exist.
+ *
+ * Sites that reference each other read as one body of work - but only while the references
+ * resolve. This shipped three links to two hosts that answer nothing: awards.opengrants.io,
+ * whose project was retired, and answers.opengrants.io, which was never built. A dead link
+ * on a site whose argument is that it shows its working costs more than the cross-link is
+ * worth, so a sibling is added here when it launches rather than in anticipation of it.
+ */
 export const Siblings: FC<{ ein: string }> = ({ ein }) => (
   <p class="siblings">
     The same organization elsewhere in the program:{" "}
     <a href={`https://check.opengrants.io/ein/${ein}`}>exempt status and filing health</a> ·{" "}
-    <a href={`https://awards.opengrants.io/${ein}`}>federal awards</a> ·{" "}
-    <a href="https://answers.opengrants.io">grant guidance</a> ·{" "}
     <a href="https://opengrants.io">open opportunities</a>.
   </p>
 );
